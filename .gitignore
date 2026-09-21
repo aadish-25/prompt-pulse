@@ -1,3 +1,24 @@
+# Virtual environments
+.venv/
+
+# Local configuration & secrets
 .env
-.venv
-.venv\
+.env*.local
+
+# Python compiled files
+__pycache__
+__pycache__/
+*.py[cod]
+
+# Frontend dependencies & builds
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.next/
+
+# IDE settings
+.vscode/
+.idea/
+
+# Personal scratchpads
+todo.txt
