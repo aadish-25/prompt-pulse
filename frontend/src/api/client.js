@@ -164,14 +164,13 @@ export async function deletePrompt(promptId) {
 /**
  * Generate brand-aware search prompt variants via backend LLM.
  */
-export async function generatePromptVariants(projectId = 4, count = 10, seedTopic = '') {
+export async function generatePromptVariants(projectId = 4, count = 10) {
   try {
     const res = await fetch(`${API_BASE}/projects/${projectId}/prompts/generate-variants`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
-        count: Math.min(count, 10),
-        seed_topic: seedTopic || 'everyday cooking and consumer dairy products'
+        count: Math.min(count, 10)
       })
     });
     if (res.ok) {

@@ -117,17 +117,18 @@ def delete_prompt(prompt_id: int, db: Session = Depends(get_db)):
 )
 def generate_variants(
     project_id: int,
-    body: schemas.VariantGenerateRequest,
+    body: schemas.VariantGenerateRequest | None = None,
     db: Session = Depends(get_db),
 ):
     project = get_project_or_404(db, project_id)
+    count = body.count if body else 10
 
     raw_variants = generate_prompt_variants(
         brand_name=project.brand_name,
-        seed_topic=body.seed_topic,
-        count=body.count,
+        count=count,
         competitors=project.competitors,
         aliases=project.aliases,
+        domains=project.domain,
     )
 
     variants_out = [
@@ -141,6 +142,5 @@ def generate_variants(
 
     return schemas.VariantGenerateResponse(
         brand_name=project.brand_name,
-        seed_topic=body.seed_topic,
         variants=variants_out,
     )
