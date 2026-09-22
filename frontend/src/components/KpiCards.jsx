@@ -5,16 +5,28 @@ export default function KpiCards({ summary, activeProject }) {
   const brandName = activeProject?.brand_name || 'Amul';
   const targetDomain = activeProject?.domain?.[0] || 'amul.com';
 
-  const visibilityPct = summary?.visibility_percentage != null ? summary.visibility_percentage.toFixed(1) : '100.0';
-  const mentionedCount = summary?.mentioned_count ?? 5;
-  const totalRuns = summary?.total_runs ?? 5;
+  const totalRuns = summary?.total_runs ?? 0;
+  const hasRuns = totalRuns > 0;
 
-  const citationPct = summary?.own_domain_citation_percentage != null ? summary.own_domain_citation_percentage.toFixed(1) : '0.0';
+  const visibilityPct = hasRuns && summary?.visibility_percentage != null 
+    ? summary.visibility_percentage.toFixed(1) 
+    : '0.0';
+  const mentionedCount = summary?.mentioned_count ?? 0;
+
+  const citationPct = hasRuns && summary?.own_domain_citation_percentage != null 
+    ? summary.own_domain_citation_percentage.toFixed(1) 
+    : '0.0';
   const citedCount = summary?.own_domain_cited_count ?? 0;
 
-  const topCompetitor = summary?.top_competitors?.[0]?.brand || 'Mother Dairy';
-  const topCompetitorRuns = summary?.top_competitors?.[0]?.count ?? 3;
-  const competitorCount = summary?.top_competitors?.length ? `${summary.top_competitors.length} Competitors` : '8 Competitors';
+  const topCompetitor = hasRuns && summary?.top_competitors?.[0]?.brand 
+    ? summary.top_competitors[0].brand 
+    : (hasRuns ? 'None Detected' : 'No Runs Yet');
+  const topCompetitorRuns = hasRuns && summary?.top_competitors?.[0]?.count 
+    ? `${summary.top_competitors[0].count} runs` 
+    : (hasRuns ? '0 runs' : 'No data');
+  const competitorCount = hasRuns && summary?.top_competitors?.length 
+    ? `${summary.top_competitors.length} Competitors` 
+    : (hasRuns ? '0 Competitors' : '0 Runs Executed');
 
   return (
     <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -28,12 +40,16 @@ export default function KpiCards({ summary, activeProject }) {
         </div>
         <div className="flex items-baseline gap-2 my-1">
           <span className="text-2xl font-bold text-white tracking-tight">{visibilityPct}%</span>
-          <span className="text-xs text-emerald-400 font-medium flex items-center">
-            <TrendingUp className="w-3.5 h-3.5 mr-0.5" /> High Share
-          </span>
+          {hasRuns && (
+            <span className="text-xs text-emerald-400 font-medium flex items-center">
+              <TrendingUp className="w-3.5 h-3.5 mr-0.5" /> High Share
+            </span>
+          )}
         </div>
         <p className="text-xs text-slate-400 mt-1 truncate">
-          {brandName} explicitly recommended in all {totalRuns} test questions
+          {hasRuns 
+            ? `${brandName} explicitly recommended in ${mentionedCount} of ${totalRuns} test questions`
+            : `No test runs executed yet for ${brandName}`}
         </p>
       </div>
 
@@ -51,7 +67,9 @@ export default function KpiCards({ summary, activeProject }) {
         </div>
         <div className="flex items-center gap-1.5 text-xs text-amber-200/80 mt-1 truncate">
           <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-          <span className="truncate">All citation traffic captured by aggregators</span>
+          <span className="truncate">
+            {hasRuns ? 'Citation traffic captured by search engines' : 'Awaiting first test batch run'}
+          </span>
         </div>
       </div>
 
@@ -62,11 +80,15 @@ export default function KpiCards({ summary, activeProject }) {
           <span className="text-xs text-slate-400">{totalRuns} evaluations</span>
         </div>
         <div className="flex items-baseline gap-2 my-1">
-          <span className="text-2xl font-bold text-white tracking-tight">100%</span>
-          <span className="text-xs text-emerald-400 font-medium">Positive</span>
+          <span className="text-2xl font-bold text-white tracking-tight">
+            {hasRuns ? '100%' : 'N/A'}
+          </span>
+          <span className="text-xs text-emerald-400 font-medium">
+            {hasRuns ? 'Positive' : 'No evaluations'}
+          </span>
         </div>
         <div className="w-full bg-surface-800 h-1.5 rounded-full mt-2 overflow-hidden flex">
-          <div className="bg-emerald-500 h-full w-full" title="100% Positive"></div>
+          <div className={`${hasRuns ? 'bg-emerald-500' : 'bg-slate-700'} h-full w-full`} title={hasRuns ? "100% Positive" : "No data"}></div>
         </div>
       </div>
 
@@ -78,10 +100,10 @@ export default function KpiCards({ summary, activeProject }) {
         </div>
         <div className="flex items-baseline gap-2 my-1">
           <span className="text-xl font-bold text-white tracking-tight truncate">{topCompetitor}</span>
-          <span className="text-xs text-slate-400 font-medium">{topCompetitorRuns} runs</span>
+          <span className="text-xs text-slate-400 font-medium">{topCompetitorRuns}</span>
         </div>
         <p className="text-xs text-slate-400 mt-1 truncate">
-          Most detected rival across AI responses
+          {hasRuns ? 'Most detected rival across AI responses' : 'Run a batch to detect competing brands'}
         </p>
       </div>
     </section>

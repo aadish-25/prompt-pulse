@@ -5,27 +5,21 @@ import React, { useMemo } from 'react';
  * Free of boxy font-mono, using clean proportional typography.
  */
 export default function CitationAudit({ summary, project, citations = [] }) {
-  const brandName = project?.brand_name || 'Amul';
-  const targetDomain = project?.domain?.[0] || 'amul.com';
-  const configuredCompetitors = project?.competitors || ['Mother Dairy', 'Britannia', 'Nandini', 'Gowardhan', 'Verka', 'Milma'];
-  const totalRuns = summary?.total_runs ?? 5;
-  const targetMentions = summary?.mentioned_count ?? totalRuns;
+  const brandName = project?.brand_name || 'Target Brand';
+  const targetDomain = project?.domain?.[0] || '';
+  const configuredCompetitors = project?.competitors || [];
+  const totalRuns = summary?.total_runs ?? 0;
+  const targetMentions = summary?.mentioned_count ?? 0;
 
   // Build merged competitor list: Target + Configured + AI-Discovered
   const competitorRows = useMemo(() => {
     const detectedMap = new Map();
-    (summary?.top_competitors || [
-      { brand: 'Mother Dairy', count: 3 },
-      { brand: 'Britannia', count: 2 },
-      { brand: 'Gowardhan', count: 2 },
-      { brand: 'Nandini', count: 2 },
-      { brand: 'President Butter', count: 1 }
-    ]).forEach(c => detectedMap.set(c.brand.toLowerCase(), c.count));
+    (summary?.top_competitors || []).forEach(c => detectedMap.set(c.brand.toLowerCase(), c.count));
 
     const rows = [];
 
     // 1. Target brand row
-    const targetFreq = totalRuns > 0 ? ((targetMentions / totalRuns) * 100).toFixed(1) : '100.0';
+    const targetFreq = totalRuns > 0 ? ((targetMentions / totalRuns) * 100).toFixed(1) : '0.0';
     rows.push({
       brand: `${brandName} (Target)`,
       type: 'target',
@@ -33,7 +27,7 @@ export default function CitationAudit({ summary, project, citations = [] }) {
       count: targetMentions,
       frequency: `${targetFreq}%`,
       isTarget: true,
-      active: true
+      active: targetMentions > 0
     });
 
     // 2. Pre-configured competitors
@@ -82,22 +76,24 @@ export default function CitationAudit({ summary, project, citations = [] }) {
   // Ensure target domain is represented in citations list if not already
   const domainRows = useMemo(() => {
     const list = [...citations];
-    const hasTarget = list.some(c => c.domain.toLowerCase() === targetDomain.toLowerCase());
-    if (!hasTarget) {
-      list.push({
-        domain: targetDomain,
-        retrieved: summary?.own_domain_retrieved_count ?? 0,
-        cited: summary?.own_domain_cited_count ?? 0
-      });
+    if (targetDomain && totalRuns > 0) {
+      const hasTarget = list.some(c => c.domain.toLowerCase() === targetDomain.toLowerCase());
+      if (!hasTarget) {
+        list.push({
+          domain: targetDomain,
+          retrieved: summary?.own_domain_retrieved_count ?? 0,
+          cited: summary?.own_domain_cited_count ?? 0
+        });
+      }
     }
     return list.sort((a, b) => {
-      const aIsTarget = a.domain.toLowerCase().includes(targetDomain.toLowerCase());
-      const bIsTarget = b.domain.toLowerCase().includes(targetDomain.toLowerCase());
+      const aIsTarget = targetDomain ? a.domain.toLowerCase().includes(targetDomain.toLowerCase()) : false;
+      const bIsTarget = targetDomain ? b.domain.toLowerCase().includes(targetDomain.toLowerCase()) : false;
       if (aIsTarget) return 1;
       if (bIsTarget) return -1;
       return b.cited - a.cited || b.retrieved - a.retrieved;
     });
-  }, [citations, targetDomain, summary]);
+  }, [citations, targetDomain, summary, totalRuns]);
 
   return (
     <section className="space-y-6">
@@ -186,32 +182,40 @@ export default function CitationAudit({ summary, project, citations = [] }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-border text-slate-300">
-                {domainRows.map((d, idx) => {
-                  const isTarget = d.domain.toLowerCase().includes(targetDomain.toLowerCase());
-                  const rate = d.retrieved > 0 ? ((d.cited / d.retrieved) * 100).toFixed(1) : '0.0';
+                {domainRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="py-8 text-center text-slate-500 italic">
+                      No domain citations recorded yet for this project.
+                    </td>
+                  </tr>
+                ) : (
+                  domainRows.map((d, idx) => {
+                    const isTarget = targetDomain ? d.domain.toLowerCase().includes(targetDomain.toLowerCase()) : false;
+                    const rate = d.retrieved > 0 ? ((d.cited / d.retrieved) * 100).toFixed(1) : '0.0';
 
-                  if (isTarget) {
+                    if (isTarget) {
+                      return (
+                        <tr key={idx} className="bg-amber-500/10">
+                          <td className="py-2.5 px-3 font-bold text-amber-300">
+                            {d.domain} (Target)
+                          </td>
+                          <td className="py-2.5 px-3 text-right text-amber-300">{d.retrieved}</td>
+                          <td className="py-2.5 px-3 text-right text-amber-400 font-bold">{d.cited}</td>
+                          <td className="py-2.5 px-3 text-right text-amber-400">{rate}%</td>
+                        </tr>
+                      );
+                    }
+
                     return (
-                      <tr key={idx} className="bg-amber-500/10">
-                        <td className="py-2.5 px-3 font-bold text-amber-300">
-                          {d.domain} (Target)
-                        </td>
-                        <td className="py-2.5 px-3 text-right text-amber-300">{d.retrieved}</td>
-                        <td className="py-2.5 px-3 text-right text-amber-400 font-bold">{d.cited}</td>
-                        <td className="py-2.5 px-3 text-right text-amber-400">{rate}%</td>
+                      <tr key={idx} className="hover:bg-surface-800/40 transition-colors">
+                        <td className="py-2.5 px-3 font-medium text-white">{d.domain}</td>
+                        <td className="py-2.5 px-3 text-right">{d.retrieved}</td>
+                        <td className="py-2.5 px-3 text-right text-emerald-400 font-semibold">{d.cited}</td>
+                        <td className="py-2.5 px-3 text-right">{rate}%</td>
                       </tr>
                     );
-                  }
-
-                  return (
-                    <tr key={idx} className="hover:bg-surface-800/40 transition-colors">
-                      <td className="py-2.5 px-3 font-medium text-white">{d.domain}</td>
-                      <td className="py-2.5 px-3 text-right">{d.retrieved}</td>
-                      <td className="py-2.5 px-3 text-right text-emerald-400 font-semibold">{d.cited}</td>
-                      <td className="py-2.5 px-3 text-right">{rate}%</td>
-                    </tr>
-                  );
-                })}
+                  })
+                )}
               </tbody>
             </table>
           </div>

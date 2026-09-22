@@ -26,6 +26,17 @@ export async function fetchProject(projectId = 4) {
   return FALLBACK_PROJECT;
 }
 
+export const EMPTY_SUMMARY = {
+  total_runs: 0,
+  mentioned_count: 0,
+  visibility_percentage: 0.0,
+  own_domain_retrieved_count: 0,
+  own_domain_cited_count: 0,
+  own_domain_citation_percentage: 0.0,
+  sentiment_breakdown: {},
+  top_competitors: []
+};
+
 /**
  * Fetch summary diagnostic metrics for a project.
  */
@@ -36,7 +47,7 @@ export async function fetchProjectSummary(projectId = 4) {
   } catch (e) {
     console.warn('API unavailable, using fallback summary', e);
   }
-  return FALLBACK_SUMMARY;
+  return projectId === 4 ? FALLBACK_SUMMARY : EMPTY_SUMMARY;
 }
 
 /**
@@ -49,7 +60,7 @@ export async function fetchProjectCitations(projectId = 4) {
   } catch (e) {
     console.warn('API unavailable, using fallback citations', e);
   }
-  return FALLBACK_CITATIONS;
+  return projectId === 4 ? FALLBACK_CITATIONS : [];
 }
 
 /**
@@ -60,12 +71,12 @@ export async function fetchProjectResults(projectId = 4) {
     const res = await fetch(`${API_BASE}/projects/${projectId}/results`);
     if (res.ok) {
       const data = await res.json();
-      if (data && data.length > 0) return data;
+      return Array.isArray(data) ? data : [];
     }
   } catch (e) {
     console.warn('API unavailable, using fallback results', e);
   }
-  return FALLBACK_RUNS;
+  return projectId === 4 ? FALLBACK_RUNS : [];
 }
 
 /**
@@ -151,18 +162,18 @@ export async function fetchProjectPrompts(projectId = 4) {
     const res = await fetch(`${API_BASE}/projects/${projectId}/prompts`);
     if (res.ok) {
       const data = await res.json();
-      if (data && data.length > 0) return data;
+      return Array.isArray(data) ? data : [];
     }
   } catch (e) {
     console.warn('API unavailable, using fallback project prompts', e);
   }
-  return [
+  return projectId === 4 ? [
     { id: 9, project_id: projectId, text: 'Which butter brand is best for everyday cooking in India?', active: true },
     { id: 10, project_id: projectId, text: 'What is the most popular ice cream brand in India right now?', active: true },
     { id: 11, project_id: projectId, text: 'Which Indian dairy brand is most trusted for milk and milk products?', active: true },
     { id: 12, project_id: projectId, text: 'Best paneer brand available in Indian supermarkets in 2026?', active: true },
     { id: 13, project_id: projectId, text: 'Which cheese brand do professional chefs in India prefer?', active: true }
-  ];
+  ] : [];
 }
 
 /**
@@ -193,6 +204,21 @@ export async function deletePrompt(promptId) {
     return res.ok;
   } catch (e) {
     console.warn('Delete prompt API failed', e);
+  }
+  return true;
+}
+
+/**
+ * Delete a brand tracking project and all its associated data.
+ */
+export async function deleteProject(projectId) {
+  try {
+    const res = await fetch(`${API_BASE}/projects/${projectId}`, {
+      method: 'DELETE'
+    });
+    return res.ok;
+  } catch (e) {
+    console.warn('Delete project API failed', e);
   }
   return true;
 }

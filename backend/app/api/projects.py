@@ -33,6 +33,31 @@ def get_project(project_id: int, db: Session = Depends(get_db)):
     return get_project_or_404(db, project_id)
 
 
+@router.delete("/projects/{project_id}", status_code=204)
+def delete_project(project_id: int, db: Session = Depends(get_db)):
+    project = get_project_or_404(db, project_id)
+
+    # 1. Cascade delete all prompts and associated executions
+    prompts = db.query(models.Prompt).filter_by(project_id=project_id).all()
+    for p in prompts:
+        executions = db.query(models.PromptExecution).filter_by(prompt_id=p.id).all()
+        for ex in executions:
+            db.query(models.SearchQuery).filter_by(execution_id=ex.id).delete()
+            db.query(models.WebSearchResult).filter_by(execution_id=ex.id).delete()
+            db.query(models.BrandMention).filter_by(execution_id=ex.id).delete()
+            db.query(models.ExecutionAnalysis).filter_by(execution_id=ex.id).delete()
+            db.delete(ex)
+        db.delete(p)
+
+    # 2. Cascade delete all tracking batches
+    db.query(models.TrackingBatch).filter_by(project_id=project_id).delete()
+
+    # 3. Delete the project
+    db.delete(project)
+    db.commit()
+    return None
+
+
 @router.post("/projects/{project_id}/prompts", response_model=schemas.PromptOut)
 def add_prompt(
     project_id: int, body: schemas.PromptCreate, db: Session = Depends(get_db)

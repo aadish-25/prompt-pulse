@@ -26,7 +26,7 @@ export default function PromptCreator({
   onGenerateVariants,
   isGenerating = false 
 }) {
-  const brandName = project?.brand_name || 'Amul';
+  const brandName = project?.brand_name || 'Target Brand';
   
   const [candidates, setCandidates] = useState([]);
   const [selectedIds, setSelectedIds] = useState(() => new Set());
