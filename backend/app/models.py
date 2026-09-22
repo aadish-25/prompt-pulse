@@ -43,6 +43,8 @@ class Run(Base):
 
     queries: Mapped[list["RunQuery"]] = relationship(back_populates="run")
     sources: Mapped[list["RunSource"]] = relationship(back_populates="run")
+    target_mentions: Mapped[list["Mention"]] = relationship(back_populates="run")
+    analysis: Mapped["Analysis | None"] = relationship(back_populates="run", uselist=False)
 
 
 class RunQuery(Base):
@@ -67,3 +69,26 @@ class RunSource(Base):
     cited: Mapped[bool] = mapped_column(Boolean, default=False)
 
     run: Mapped["Run"] = relationship(back_populates="sources")
+
+
+class Mention(Base):
+    __tablename__ = "mentions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    run_id: Mapped[int] = mapped_column(ForeignKey("runs.id"))
+    sentence: Mapped[str] = mapped_column(Text)
+    matched_as: Mapped[str] = mapped_column(String(100))
+
+    run: Mapped["Run"] = relationship(back_populates="target_mentions")
+
+
+class Analysis(Base):
+    __tablename__ = "analyses"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    run_id: Mapped[int] = mapped_column(ForeignKey("runs.id"), unique=True)
+    other_brands: Mapped[list] = mapped_column(JSON, default=list)
+    target_sentiment: Mapped[str] = mapped_column(String(20))
+    target_remark: Mapped[str] = mapped_column(Text)
+
+    run: Mapped["Run"] = relationship(back_populates="analysis")

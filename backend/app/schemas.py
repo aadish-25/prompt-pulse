@@ -39,6 +39,7 @@ class RunSourceOut(BaseModel):
     domain: str
     title: str | None
     cited: bool
+    snippet: str | None
     model_config = {"from_attributes": True}
 
 
@@ -53,4 +54,19 @@ class RunOut(BaseModel):
     duration_ms: int | None
     queries: list[RunQueryOut] = []
     sources: list[RunSourceOut] = []
+    model_config = {"from_attributes": True}
+    target_mentions: list[MentionOut] = []
+    analysis: AnalysisOut | None = None
+
+
+class MentionOut(BaseModel):
+    sentence: str
+    matched_as: str
+    model_config = {"from_attributes": True}
+
+
+class AnalysisOut(BaseModel):
+    other_brands: list[str]
+    target_sentiment: str
+    target_remark: str
     model_config = {"from_attributes": True}
