@@ -4,8 +4,8 @@ import re
 def extract_cited(answer: str) -> set[int]:
     cited: set[int] = set()
 
-    # closing line: "Sources used: 1, 7, 8"
-    for m in re.findall(r"Sources used:[ \t]*([\d, ]+)", answer, flags=re.I):
+    # closing line: "CITED: 1, 7, 8" or legacy "Sources used: 1, 7, 8"
+    for m in re.findall(r"(?:CITED|Sources used):[ \t]*([\d, ]+)", answer, flags=re.I):
         cited.update(int(n) for n in re.findall(r"\d+", m))
 
     # inline: [1]  [1][3]  [1, 3]
