@@ -1,1 +1,11 @@
-- The date is reaching the model, since the answer mentions 2026 and includes 2026 sources. But the queries still say "2024", even with the "never add a year" rule in the prompt. So gpt-oss-120b ignores that instruction when it writes queries.
+- The model ignores the "never add a year to queries" instruction and still writes queries like "best sports shoes India 2024", even though the answer itself correctly mentions 2026. It reads the date fine, it just doesn't apply the rule when forming search queries.
+
+- Tavily's results for broad comparison prompts tend to favor blog aggregators and minor retail sites over actual brand pages or well-known review outlets. This is a Tavily limitation — it's a general-purpose search API, not tuned for this kind of query. Switching to a provider's native search grounding (OpenAI Responses API, Gemini Search) would help, but that breaks the provider-agnostic design and adds cost.
+
+- Brand sites with thin or image-heavy pages (e.g. Nike) never show up as cited sources. Nike's website has almost no crawlable product text — just brand imagery and category navigation — so Tavily has nothing to extract even when it does visit the page. Brands like this will always have low visibility in this setup regardless of how many searches the model runs.
+
+ - Why brand sites rarely get cited
+
+    Brand websites (boAt's, Mamaearth's) are built to sell, not to answer "what's best." Any comparison claims they make usually live in banner images, not real text — so a text-based search tool has nothing to quote from them. Review sites write that comparison out in plain sentences, so they get cited instead.
+
+    (Hypothesis, unverified — check a raw snippet from boat-lifestyle.com to confirm.)
