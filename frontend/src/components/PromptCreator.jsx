@@ -1,10 +1,24 @@
 import React, { useState } from 'react';
-import { Sparkles, Plus, PlusCircle, Check, Loader2, CheckCircle2 } from 'lucide-react';
-import { FALLBACK_VARIANTS } from '../api/client';
+import { Sparkles, Plus, PlusCircle, Check, Loader2, Trash2 } from 'lucide-react';
+
+let candidateCounter = 0;
+function createCandidate(prompt, topic = 'Natural Search', intent = 'Consumer Query', rationale = '') {
+  candidateCounter += 1;
+  return {
+    id: `cand_${Date.now()}_${candidateCounter}_${Math.random().toString(36).substring(2, 7)}`,
+    prompt,
+    topic,
+    intent,
+    rationale
+  };
+}
 
 /**
  * PromptCreator component - Brand-driven prompt variant generator and selector.
- * Clears added prompts after submission and displays a clean empty state to prevent duplicate adds.
+ * - Initial state is blank (no hardcoded prompts).
+ * - Tracks selections by unique candidate ID.
+ * - Adding selected prompts removes ONLY those added, keeping unselected items disabled.
+ * - Provides an individual delete button on the right of each candidate card.
  */
 export default function PromptCreator({ 
   project, 
@@ -14,10 +28,8 @@ export default function PromptCreator({
 }) {
   const brandName = project?.brand_name || 'Amul';
   
-  const [candidates, setCandidates] = useState(FALLBACK_VARIANTS);
-  const [selectedIndices, setSelectedIndices] = useState(() => 
-    new Set(FALLBACK_VARIANTS.map((_, i) => i))
-  );
+  const [candidates, setCandidates] = useState([]);
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [customText, setCustomText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
@@ -27,45 +39,59 @@ export default function PromptCreator({
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // Toggle individual card
-  const handleToggleCard = (idx) => {
-    setSelectedIndices(prev => {
+  // Toggle individual card selection
+  const handleToggleCard = (id) => {
+    setSelectedIds(prev => {
       const next = new Set(prev);
-      if (next.has(idx)) {
-        next.delete(idx);
+      if (next.has(id)) {
+        next.delete(id);
       } else {
-        next.add(idx);
+        next.add(id);
       }
       return next;
     });
   };
 
   // Toggle select all
-  const allSelected = candidates.length > 0 && selectedIndices.size === candidates.length;
+  const allSelected = candidates.length > 0 && selectedIds.size === candidates.length;
   const handleToggleSelectAll = () => {
     if (allSelected) {
-      setSelectedIndices(new Set());
+      setSelectedIds(new Set());
     } else {
-      setSelectedIndices(new Set(candidates.map((_, i) => i)));
+      setSelectedIds(new Set(candidates.map(c => c.id)));
     }
   };
 
-  // Generate new variants
+  // Delete individual candidate card
+  const handleDeleteCandidate = (id) => {
+    setCandidates(prev => prev.filter(c => c.id !== id));
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+    showToast('Removed candidate prompt');
+  };
+
+  // Generate new variants from LLM
   const handleGenerate = async () => {
     if (isGenerating) return;
     if (onGenerateVariants) {
       const newVariants = await onGenerateVariants();
       if (newVariants && newVariants.length > 0) {
-        setCandidates(newVariants);
-        setSelectedIndices(new Set(newVariants.map((_, i) => i)));
-        showToast(`Generated ${newVariants.length} new brand-aware prompts!`);
+        const formatted = newVariants.map(v => createCandidate(
+          v.prompt || v.text,
+          v.topic || v.intent_category || 'Natural Search',
+          v.intent || 'Consumer Query',
+          v.rationale || `Relevant buyer inquiry for ${brandName} market.`
+        ));
+        setCandidates(formatted);
+        setSelectedIds(new Set(formatted.map(c => c.id)));
+        showToast(`Generated ${formatted.length} new brand-aware prompts!`);
         return;
       }
     }
-    // Fallback if network fails
-    setCandidates(FALLBACK_VARIANTS);
-    setSelectedIndices(new Set(FALLBACK_VARIANTS.map((_, i) => i)));
-    showToast('Loaded 10 brand-aware prompt candidates!');
+    showToast('Failed to generate variants. Please try again.');
   };
 
   // Add custom prompt
@@ -73,42 +99,40 @@ export default function PromptCreator({
     const trimmed = customText.trim();
     if (!trimmed) return;
 
-    const newCandidate = {
-      topic: 'Custom Query',
-      intent: 'User Defined',
-      prompt: trimmed,
-      rationale: `Manually added prompt query for ${brandName} tracking.`
-    };
+    const newCandidate = createCandidate(
+      trimmed,
+      'Custom Query',
+      'User Defined',
+      `Manually added prompt query for ${brandName} tracking.`
+    );
 
     setCandidates(prev => [newCandidate, ...prev]);
-    setSelectedIndices(prev => {
-      const updated = new Set();
-      updated.add(0); // Select the newly prepended item
-      prev.forEach(i => updated.add(i + 1));
-      return updated;
-    });
+    setSelectedIds(prev => new Set(prev).add(newCandidate.id));
     setCustomText('');
-    showToast('Custom prompt added to list!');
+    showToast('Custom prompt added to candidates!');
   };
 
-  // Bulk add selected to project and clear them from this screen
+  // Bulk add selected to project and clear ONLY the added candidates
   const handleBulkAdd = async () => {
-    const selectedPrompts = candidates
-      .filter((_, idx) => selectedIndices.has(idx))
-      .map(c => c.prompt);
-
-    if (selectedPrompts.length === 0) return;
+    const toAdd = candidates.filter(c => selectedIds.has(c.id));
+    if (toAdd.length === 0) return;
 
     setIsSubmitting(true);
     try {
       if (onAddPrompts) {
-        await onAddPrompts(selectedPrompts);
+        await onAddPrompts(toAdd.map(c => c.prompt));
       }
-      showToast(`Added ${selectedPrompts.length} prompts to project tracker!`);
-      // Remove added candidates so they cannot be accidentally re-added
-      const remaining = candidates.filter((_, idx) => !selectedIndices.has(idx));
-      setCandidates(remaining);
-      setSelectedIndices(new Set(remaining.map((_, i) => i)));
+      showToast(`Added ${toAdd.length} prompt(s) to project tracker!`);
+      
+      const addedIdSet = new Set(toAdd.map(c => c.id));
+      // Remove ONLY added prompts from the candidate list
+      setCandidates(prev => prev.filter(c => !addedIdSet.has(c.id)));
+      // Remove ONLY added IDs from selectedIds — leaving all unselected/disabled cards exactly as they were!
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        addedIdSet.forEach(id => next.delete(id));
+        return next;
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -133,7 +157,7 @@ export default function PromptCreator({
               Brand-Aware Prompt Creator for <span className="text-blue-400 font-semibold">{brandName}</span>
             </h3>
             <p className="text-xs text-slate-400 max-w-2xl leading-relaxed">
-              Automatically deduces {brandName}'s industry, product portfolio, and competitors to create realistic consumer search questions. <strong className="text-slate-200">Never mentions "{brandName}" in the prompt.</strong>
+              Deduces {brandName}'s product category and competitors to create realistic consumer search questions. <strong className="text-slate-200">Never mentions "{brandName}" directly in the prompt.</strong>
             </p>
           </div>
           
@@ -189,13 +213,15 @@ export default function PromptCreator({
               <label htmlFor="select-all-checkbox" className="text-xs font-bold text-slate-300 uppercase tracking-wider cursor-pointer select-none">
                 Select All ({candidates.length} Prompts)
               </label>
-              <span className="text-xs text-slate-500">Page 1 of 1 · {candidates.length} per page</span>
+              <span className="text-xs text-slate-500">
+                {selectedIds.size} of {candidates.length} selected
+              </span>
             </div>
 
             <button
               type="button"
               onClick={handleBulkAdd}
-              disabled={selectedIndices.size === 0 || isSubmitting}
+              disabled={selectedIds.size === 0 || isSubmitting}
               className="shrink-0 whitespace-nowrap text-xs bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white font-semibold px-4 py-2 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-all shadow-blue-600/20 active:scale-95 cursor-pointer"
             >
               {isSubmitting ? (
@@ -203,28 +229,28 @@ export default function PromptCreator({
               ) : (
                 <PlusCircle className="w-4 h-4" />
               )}
-              <span>Add {selectedIndices.size} Selected Prompts to Project</span>
+              <span>Add {selectedIds.size} Selected Prompts to Project</span>
             </button>
           </div>
 
           {/* Candidate Cards List */}
           <div className="space-y-2.5">
-            {candidates.map((item, idx) => {
-              const isSelected = selectedIndices.has(idx);
+            {candidates.map((item) => {
+              const isSelected = selectedIds.has(item.id);
               return (
                 <div
-                  key={idx}
-                  onClick={() => handleToggleCard(idx)}
+                  key={item.id}
+                  onClick={() => handleToggleCard(item.id)}
                   className={`bg-surface-850 border ${isSelected ? 'border-blue-500/40 bg-surface-850' : 'border-surface-border opacity-70'} rounded-xl p-4 flex items-start gap-4 hover:border-slate-700 transition-all cursor-pointer`}
                 >
                   <input
                     type="checkbox"
                     checked={isSelected}
-                    onChange={() => handleToggleCard(idx)}
+                    onChange={() => handleToggleCard(item.id)}
                     onClick={(e) => e.stopPropagation()}
                     className="mt-1 w-4 h-4 rounded border-slate-700 bg-surface-900 text-blue-600 focus:ring-0 cursor-pointer"
                   />
-                  <div className="flex-1 space-y-1">
+                  <div className="flex-1 space-y-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-[11px] px-2.5 py-0.5 rounded bg-surface-800 text-slate-300 font-medium border border-surface-border">
                         {item.topic}
@@ -240,28 +266,41 @@ export default function PromptCreator({
                       <strong className="text-slate-300">Rationale:</strong> {item.rationale}
                     </p>
                   </div>
+
+                  {/* Delete button on the right */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteCandidate(item.id);
+                    }}
+                    title="Delete prompt candidate"
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer shrink-0 self-center"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               );
             })}
           </div>
         </div>
       ) : (
-        /* Empty State After Prompts Are Added */
+        /* Blank Initial / Empty State */
         <div className="bg-surface-850 border border-surface-border rounded-xl p-12 text-center space-y-4 animate-fade-in">
-          <div className="w-12 h-12 mx-auto rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
-            <CheckCircle2 className="w-6 h-6" />
+          <div className="w-12 h-12 mx-auto rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center">
+            <Sparkles className="w-6 h-6" />
           </div>
           <div className="space-y-1 max-w-md mx-auto">
-            <h4 className="text-base font-bold text-white">All Prompts Added to Project Tracker</h4>
+            <h4 className="text-base font-bold text-white">No Prompt Candidates Yet</h4>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Your candidate prompts have been committed to the project's tracking queue. Ready to discover more consumer queries?
+              Click "Generate 10 New Prompts" to discover realistic consumer search queries for <strong className="text-slate-200">{brandName}</strong>, or type your own custom prompt above.
             </p>
           </div>
           <button
             type="button"
             onClick={handleGenerate}
             disabled={isGenerating}
-            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs px-4 py-2.5 rounded-lg shadow-sm transition-all shadow-blue-600/20 active:scale-95 cursor-pointer"
+            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-semibold text-xs px-4 py-2.5 rounded-lg shadow-sm transition-all shadow-blue-600/20 active:scale-95 cursor-pointer"
           >
             {isGenerating ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />

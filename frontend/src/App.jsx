@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Check } from 'lucide-react';
 import Header from './components/Header';
 import KpiCards from './components/KpiCards';
 import NavigationTabs from './components/NavigationTabs';
@@ -14,7 +15,9 @@ import {
   fetchProject,
   fetchProjectSummary,
   fetchProjectCitations,
+  fetchProjectResults,
   fetchBatchRuns,
+  pollBatchUntilDone,
   fetchProjectPrompts,
   togglePromptActive,
   deletePrompt,
@@ -60,17 +63,24 @@ export default function App() {
 
   // Status & loading indicators
   const [isRunningBatch, setIsRunningBatch] = useState(false);
+  const [batchProgress, setBatchProgress] = useState(null); // { completed: number, total: number }
   const [isGeneratingVariants, setIsGeneratingVariants] = useState(false);
   const [apiOnline, setApiOnline] = useState(true);
+  const [toastMessage, setToastMessage] = useState(null);
 
-  // Load project details, prompts, and executions
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 4000);
+  };
+
+  // Load project details, prompts, and all executions
   const loadProjectData = useCallback(async (projId) => {
     try {
       const [projData, sumData, citData, runsData, promptsData] = await Promise.all([
         fetchProject(projId),
         fetchProjectSummary(projId),
         fetchProjectCitations(projId),
-        fetchBatchRuns(projId),
+        fetchProjectResults(projId),
         fetchProjectPrompts(projId)
       ]);
 
@@ -153,18 +163,49 @@ export default function App() {
     setActiveTab('explorer');
   };
 
-  // Trigger batch execution
+  // Trigger batch execution with real-time polling & progress updates
   const handleRunBatch = async () => {
     if (isRunningBatch) return;
+
+    const activePrompts = prompts.filter(p => p.active);
+    if (activePrompts.length === 0) {
+      showToast('No active prompts configured for batch run. Please activate at least one prompt.');
+      return;
+    }
+
     setIsRunningBatch(true);
+    const targetTotal = activePrompts.length * selectedRounds;
+    setBatchProgress({ completed: 0, total: targetTotal });
+
     try {
-      await triggerBatchRun(activeProjectId, selectedRounds, selectedModel);
-      // Refresh project data, executions, and prompts
+      showToast(`Initiating tracking batch with ${selectedModel}...`);
+      const batch = await triggerBatchRun(activeProjectId, selectedRounds, selectedModel);
+
+      if (batch?.error) {
+        showToast(`Batch execution failed: ${batch.error}`);
+        return;
+      }
+
+      if (batch?.id) {
+        showToast(`Batch #${batch.id} running across web sources...`);
+        // Poll backend every 2s until all web searches, grounding, and LLM extractions finish
+        await pollBatchUntilDone(batch.id, (b) => {
+          setBatchProgress({
+            completed: b.completed_runs || 0,
+            total: b.total_runs || targetTotal
+          });
+        });
+        showToast(`Batch #${batch.id} completed! All diagnostic cards and AI answers updated.`);
+      }
+
+      // Refresh all project data, latest executions, summary, and citations
       await loadProjectData(activeProjectId);
     } catch (err) {
       console.error('Batch run error:', err);
+      showToast('An unexpected error occurred during batch execution.');
     } finally {
       setIsRunningBatch(false);
+      setBatchProgress(null);
     }
   };
 
@@ -223,6 +264,7 @@ export default function App() {
         onSelectRounds={setSelectedRounds}
         onRunBatch={handleRunBatch}
         isRunningBatch={isRunningBatch}
+        batchProgress={batchProgress}
       />
 
       {/* Main View Area */}
@@ -271,6 +313,7 @@ export default function App() {
               onNavigateToCreator={() => setActiveTab('generator')}
               onRunBatch={handleRunBatch}
               isRunningBatch={isRunningBatch}
+              batchProgress={batchProgress}
             />
           )}
 
@@ -284,6 +327,14 @@ export default function App() {
             />
           )}
         </main>
+      )}
+
+      {/* Floating System Notification Toast */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 bg-blue-600 text-white px-4 py-2.5 rounded-xl shadow-lg shadow-blue-600/30 flex items-center gap-2 text-xs font-semibold animate-fade-in">
+          <Check className="w-4 h-4 text-emerald-300 shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
       )}
 
       {/* Footer */}

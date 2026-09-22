@@ -14,7 +14,8 @@ export default function Header({
   selectedRounds,
   onSelectRounds,
   onRunBatch,
-  isRunningBatch
+  isRunningBatch,
+  batchProgress = null
 }) {
   const [projectOpen, setProjectOpen] = useState(false);
   const [modelOpen, setModelOpen] = useState(false);
@@ -202,7 +203,11 @@ export default function Header({
           {isRunningBatch ? (
             <>
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              <span>Running...</span>
+              <span>
+                {batchProgress && batchProgress.total > 0
+                  ? `Running (${batchProgress.completed}/${batchProgress.total})...`
+                  : 'Running Batch...'}
+              </span>
             </>
           ) : (
             <>

@@ -35,19 +35,19 @@ INSTRUCTIONS:
    NEVER mention the Target Brand name ("{brand_name}") or any of its aliases in the prompts. The purpose of GEO tracking is to discover whether AI engines organically cite or recommend "{brand_name}" in response to unbiased consumer queries. Mentioning the brand directly ruins this tracking.
 
 FIVE EXAMPLES OF WHAT PROMPTS SHOULD NOT BE (AND WHY):
-- ❌ BAD EXAMPLE 1 (Direct Brand Mention / Biased Leading Question):
+- BAD EXAMPLE 1 (Direct Brand Mention / Biased Leading Question):
   "Why is [Target Brand] better than other options for daily running?"
   Why it fails: It directly names the target brand. Prompts must be unbiased discovery questions so the AI engine organically chooses which brands to recommend.
-- ❌ BAD EXAMPLE 2 (Academic Encyclopedia / History / Manufacturing Trivia):
+- BAD EXAMPLE 2 (Academic Encyclopedia / History / Manufacturing Trivia):
   "What is the thermodynamic process used to vulcanize rubber in shoe soles?" or "How was this commodity historically traded?"
   Why it fails: Real shoppers do not ask textbook theory questions when making buying decisions. These yield history or science lessons, not commercial brand recommendations.
-- ❌ BAD EXAMPLE 3 (Robotic SEO Keyword-Stuffing / Affiliate Headline):
+- BAD EXAMPLE 3 (Robotic SEO Keyword-Stuffing / Affiliate Headline):
   "best budget wireless earbuds under 2000 india top 10 specs battery review 2026"
   Why it fails: Real humans typing to AI assistants ask conversational, coherent questions, not robotic keyword strings or affiliate blog post titles.
-- ❌ BAD EXAMPLE 4 (Overly Vague / Zero-Context Keyword):
+- BAD EXAMPLE 4 (Overly Vague / Zero-Context Keyword):
   "shoes" or "best laptops" or "good butter"
   Why it fails: Lacks the context, criteria, or constraints needed for an AI engine to provide a nuanced, comparative brand recommendation.
-- ❌ BAD EXAMPLE 5 (Absurd / Non-Commercial Hypothetical):
+- BAD EXAMPLE 5 (Absurd / Non-Commercial Hypothetical):
   "Can I wear marathon running sneakers while deep sea scuba diving?"
   Why it fails: Real shoppers never ask absurd edge cases when purchasing products.
 
