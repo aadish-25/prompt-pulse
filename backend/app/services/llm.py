@@ -24,10 +24,11 @@ class LLMSource(BaseModel):
     content: str
     domain: str
     cited: bool = False
+    raw_response: dict | None = None
 
 
 class PromptResult(BaseModel):
-    """Everything run_prompt returns. Internal — the API layer maps this to RunOut."""
+    """Everything run_prompt returns. Internal — the API layer maps this to PromptExecutionOut."""
     answer: str
     queries: list[str]
     sources: list[LLMSource]
@@ -91,6 +92,7 @@ def run_prompt(prompt: str) -> PromptResult:
                         url=url,
                         content=r.content,
                         domain=get_domain(url),
+                        raw_response=r.raw_response,
                     )
                 )
                 number_of[url] = len(sources)

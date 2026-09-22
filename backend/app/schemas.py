@@ -29,21 +29,35 @@ class PromptOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class RunQueryOut(BaseModel):
+class SearchQueryOut(BaseModel):
     query: str
     model_config = {"from_attributes": True}
 
 
-class RunSourceOut(BaseModel):
+class BrandMentionOut(BaseModel):
+    sentence: str
+    matched_as: str
+    model_config = {"from_attributes": True}
+
+
+class ExecutionAnalysisOut(BaseModel):
+    other_brands: list[str]
+    target_sentiment: str
+    target_remark: str
+    model_config = {"from_attributes": True}
+
+
+class WebSearchResultOut(BaseModel):
     url: str
     domain: str
     title: str | None
     cited: bool
     snippet: str | None
+    raw_response: dict | None = None
     model_config = {"from_attributes": True}
 
 
-class RunOut(BaseModel):
+class PromptExecutionOut(BaseModel):
     id: int
     prompt_id: int
     round: int
@@ -52,31 +66,18 @@ class RunOut(BaseModel):
     error: str | None
     model: str | None
     duration_ms: int | None
-    queries: list[RunQueryOut] = []
-    sources: list[RunSourceOut] = []
-    model_config = {"from_attributes": True}
-    target_mentions: list[MentionOut] = []
-    analysis: AnalysisOut | None = None
-
-
-class MentionOut(BaseModel):
-    sentence: str
-    matched_as: str
+    search_queries: list[SearchQueryOut] = []
+    web_search_results: list[WebSearchResultOut] = []
+    brand_mentions: list[BrandMentionOut] = []
+    analysis: ExecutionAnalysisOut | None = None
     model_config = {"from_attributes": True}
 
 
-class AnalysisOut(BaseModel):
-    other_brands: list[str]
-    target_sentiment: str
-    target_remark: str
-    model_config = {"from_attributes": True}
-
-
-class BatchCreate(BaseModel):
+class TrackingBatchCreate(BaseModel):
     rounds: int = 3
 
 
-class BatchOut(BaseModel):
+class TrackingBatchOut(BaseModel):
     id: int
     status: str
     total_runs: int

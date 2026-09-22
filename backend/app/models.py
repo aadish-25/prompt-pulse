@@ -28,8 +28,8 @@ class Prompt(Base):
     project: Mapped["Project"] = relationship(back_populates="prompts")
 
 
-class Run(Base):
-    __tablename__ = "runs"
+class PromptExecution(Base):
+    __tablename__ = "prompt_executions"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     prompt_id: Mapped[int] = mapped_column(ForeignKey("prompts.id"))
@@ -41,64 +41,67 @@ class Run(Base):
     duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
 
-    queries: Mapped[list["RunQuery"]] = relationship(back_populates="run")
-    sources: Mapped[list["RunSource"]] = relationship(back_populates="run")
-    target_mentions: Mapped[list["Mention"]] = relationship(back_populates="run")
-    analysis: Mapped["Analysis | None"] = relationship(
-        back_populates="run", uselist=False
+    search_queries: Mapped[list["SearchQuery"]] = relationship(back_populates="execution")
+    web_search_results: Mapped[list["WebSearchResult"]] = relationship(back_populates="execution")
+    brand_mentions: Mapped[list["BrandMention"]] = relationship(back_populates="execution")
+    analysis: Mapped["ExecutionAnalysis | None"] = relationship(
+        back_populates="execution", uselist=False
     )
-    batch_id: Mapped[int | None] = mapped_column(ForeignKey("run_batches.id"), nullable=True)
+    batch_id: Mapped[int | None] = mapped_column(
+        ForeignKey("tracking_batches.id"), nullable=True
+    )
 
 
-class RunQuery(Base):
-    __tablename__ = "run_queries"
+class SearchQuery(Base):
+    __tablename__ = "search_queries"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    run_id: Mapped[int] = mapped_column(ForeignKey("runs.id"))
+    execution_id: Mapped[int] = mapped_column(ForeignKey("prompt_executions.id"))
     query: Mapped[str] = mapped_column(Text)
 
-    run: Mapped["Run"] = relationship(back_populates="queries")
+    execution: Mapped["PromptExecution"] = relationship(back_populates="search_queries")
 
 
-class RunSource(Base):
-    __tablename__ = "run_sources"
+class WebSearchResult(Base):
+    __tablename__ = "web_search_results"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    run_id: Mapped[int] = mapped_column(ForeignKey("runs.id"))
+    execution_id: Mapped[int] = mapped_column(ForeignKey("prompt_executions.id"))
     url: Mapped[str] = mapped_column(Text)
     domain: Mapped[str] = mapped_column(String(255))
     title: Mapped[str | None] = mapped_column(Text, nullable=True)
     snippet: Mapped[str | None] = mapped_column(Text, nullable=True)
     cited: Mapped[bool] = mapped_column(Boolean, default=False)
+    raw_response: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
-    run: Mapped["Run"] = relationship(back_populates="sources")
+    execution: Mapped["PromptExecution"] = relationship(back_populates="web_search_results")
 
 
-class Mention(Base):
-    __tablename__ = "mentions"
+class BrandMention(Base):
+    __tablename__ = "brand_mentions"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    run_id: Mapped[int] = mapped_column(ForeignKey("runs.id"))
+    execution_id: Mapped[int] = mapped_column(ForeignKey("prompt_executions.id"))
     sentence: Mapped[str] = mapped_column(Text)
     matched_as: Mapped[str] = mapped_column(String(100))
 
-    run: Mapped["Run"] = relationship(back_populates="target_mentions")
+    execution: Mapped["PromptExecution"] = relationship(back_populates="brand_mentions")
 
 
-class Analysis(Base):
-    __tablename__ = "analyses"
+class ExecutionAnalysis(Base):
+    __tablename__ = "execution_analyses"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    run_id: Mapped[int] = mapped_column(ForeignKey("runs.id"), unique=True)
+    execution_id: Mapped[int] = mapped_column(ForeignKey("prompt_executions.id"), unique=True)
     other_brands: Mapped[list] = mapped_column(JSON, default=list)
     target_sentiment: Mapped[str] = mapped_column(String(20))
     target_remark: Mapped[str] = mapped_column(Text)
 
-    run: Mapped["Run"] = relationship(back_populates="analysis")
+    execution: Mapped["PromptExecution"] = relationship(back_populates="analysis")
 
 
-class RunBatch(Base):
-    __tablename__ = "run_batches"
+class TrackingBatch(Base):
+    __tablename__ = "tracking_batches"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"))
