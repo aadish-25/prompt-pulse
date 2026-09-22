@@ -44,7 +44,10 @@ class Run(Base):
     queries: Mapped[list["RunQuery"]] = relationship(back_populates="run")
     sources: Mapped[list["RunSource"]] = relationship(back_populates="run")
     target_mentions: Mapped[list["Mention"]] = relationship(back_populates="run")
-    analysis: Mapped["Analysis | None"] = relationship(back_populates="run", uselist=False)
+    analysis: Mapped["Analysis | None"] = relationship(
+        back_populates="run", uselist=False
+    )
+    batch_id: Mapped[int | None] = mapped_column(ForeignKey("run_batches.id"), nullable=True)
 
 
 class RunQuery(Base):
@@ -92,3 +95,18 @@ class Analysis(Base):
     target_remark: Mapped[str] = mapped_column(Text)
 
     run: Mapped["Run"] = relationship(back_populates="analysis")
+
+
+class RunBatch(Base):
+    __tablename__ = "run_batches"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"))
+    rounds: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(
+        String(20), default="queued"
+    )  # queued -> running -> done
+    total_runs: Mapped[int] = mapped_column(Integer, default=0)
+    completed_runs: Mapped[int] = mapped_column(Integer, default=0)
+    failed_runs: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
