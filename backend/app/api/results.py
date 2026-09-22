@@ -30,6 +30,11 @@ def project_results(
 
 @router.get("/projects/{project_id}/summary", response_model=schemas.SummaryOut)
 def project_summary(project_id: int, db: Session = Depends(get_db)):
+    project = db.get(models.Project, project_id)
+    target_domains = (
+        {d.lower().strip() for d in (project.domain or [])} if project else set()
+    )
+
     executions = (
         db.query(models.PromptExecution)
         .join(models.Prompt)
@@ -41,16 +46,35 @@ def project_summary(project_id: int, db: Session = Depends(get_db)):
         return schemas.SummaryOut(
             total_runs=0,
             mentioned_count=0,
-            visibility_pct=0.0,
+            visibility_percentage=0.0,
+            own_domain_retrieved_count=0,
+            own_domain_cited_count=0,
+            own_domain_citation_percentage=0.0,
             sentiment_breakdown={},
             top_competitors=[],
         )
 
     mentioned = [e for e in executions if e.brand_mentions]
+    own_domain_retrieved = 0
+    own_domain_cited = 0
     sentiments: dict[str, int] = {}
     competitor_counts: dict[str, int] = {}
 
     for e in executions:
+        has_retrieved = False
+        has_cited = False
+        for s in e.web_search_results:
+            domain_clean = s.domain.lower().strip()
+            if any(td in domain_clean for td in target_domains):
+                has_retrieved = True
+                if s.cited:
+                    has_cited = True
+
+        if has_retrieved:
+            own_domain_retrieved += 1
+        if has_cited:
+            own_domain_cited += 1
+
         if e.analysis:
             sentiments[e.analysis.target_sentiment] = (
                 sentiments.get(e.analysis.target_sentiment, 0) + 1
@@ -63,7 +87,10 @@ def project_summary(project_id: int, db: Session = Depends(get_db)):
     return schemas.SummaryOut(
         total_runs=total,
         mentioned_count=len(mentioned),
-        visibility_pct=round(len(mentioned) / total * 100, 1),
+        visibility_percentage=round(len(mentioned) / total * 100, 1),
+        own_domain_retrieved_count=own_domain_retrieved,
+        own_domain_cited_count=own_domain_cited,
+        own_domain_citation_percentage=round(own_domain_cited / total * 100, 1),
         sentiment_breakdown=sentiments,
         top_competitors=[{"brand": b, "count": c} for b, c in top_competitors],
     )

@@ -89,7 +89,10 @@ class TrackingBatchOut(BaseModel):
 class SummaryOut(BaseModel):
     total_runs: int
     mentioned_count: int
-    visibility_pct: float
+    visibility_percentage: float
+    own_domain_retrieved_count: int
+    own_domain_cited_count: int
+    own_domain_citation_percentage: float
     sentiment_breakdown: dict[str, int]
     top_competitors: list[dict]
 
