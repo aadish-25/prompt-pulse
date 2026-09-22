@@ -42,12 +42,14 @@ class PromptVariantOut(BaseModel):
 class VariantGenerateRequest(BaseModel):
     count: int = Field(default=10, ge=1, le=10)
     seed_topic: str | None = None
+    model: str | None = None
 
 
 class VariantGenerateResponse(BaseModel):
     brand_name: str
     variants: list[PromptVariantOut]
     seed_topic: str | None = None
+    model: str | None = None
 
 
 class SearchQueryOut(BaseModel):

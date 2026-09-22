@@ -20,7 +20,7 @@ class VariantGenerationResponse(BaseModel):
 
 
 SYSTEM_PROMPT = """You are an expert at simulating authentic everyday human search queries for Generative Engine Optimization (GEO).
-Your job is to generate realistic, conversational search prompts that everyday consumers ask AI assistants (like ChatGPT, Perplexity, Gemini) or search engines when researching and purchasing products in the space of the target brand.
+Your job is to generate realistic, natural search prompts that everyday buyers or decision-makers ask AI assistants (like ChatGPT, Perplexity, Gemini) or search engines when discovering, comparing, and choosing solutions in the space of the target brand.
 
 CONTEXT:
 - Target Brand: {brand_name}
@@ -29,31 +29,40 @@ CONTEXT:
 - Aliases: {aliases}
 
 INSTRUCTIONS:
-1. DEDUCE CATEGORY & CONSUMER NEEDS:
-   Dynamically analyze {brand_name}, its domains, and competitors to deduce its exact product categories, market tier, and what real buyers care about (e.g. build quality, performance, battery, durability, comfort, design, value).
-   All prompts must reflect authentic purchase journeys in this brand's market.
+1. INFER THE NATURE OF THE OFFERING & TARGET AUDIENCE:
+   Dynamically analyze {brand_name}, its domain, and competitors to understand whether it provides:
+   - Physical Consumer Goods (e.g. food, dairy, beverages, apparel, beauty, electronics, automotive)
+   - B2B / Enterprise Services (e.g. IT services, software development, consulting, cloud migration)
+   - Digital Products / SaaS (e.g. productivity tools, financial platforms)
+   - Local or Specialized Services
+   Ground all search prompts in the real-world problems and criteria that buyers in this exact industry care about.
 
-2. PRICE VARIABILITY (CRITICAL RULE — ONLY 2 TO 3 PROMPTS WITH PRICE):
-   - At most 2 or 3 out of {count} prompts should include an explicit price ceiling or budget limit.
-   - The remaining 7 or 8 prompts MUST focus purely on use cases, quality, performance, durability, or comparisons WITHOUT any price mentioned.
-   - For the 2-3 prompts that DO include a price: use realistic, numerical market figures appropriate to the category (e.g. "under 50000", "under 1.5 lakh", "under 3000"). Never use placeholder phrases like "under a certain budget" or clichés like "won't break the bank".
+2. DIVERSE HUMAN BUYING INTENTS (CROSS-INDUSTRY):
+   Distribute the {count} prompts across authentic buyer decision stages:
+   - Core Outcome / Primary Need: What main problem or task is the user seeking to achieve?
+   - Quality, Standards & Ingredients / Methodology: How do buyers evaluate excellence here? (e.g. clean ingredients in food, expert engineering in tech, compliance/track-record in IT services, skin-friendliness in cosmetics)
+   - Comparison & Alternatives: Comparing approaches, standards, or trade-offs (e.g. approach A vs B, or which type of solution is better for a specific goal)
+   - Specific Scenario / Persona Fit: Tailored to a particular persona or context (e.g. beginners, enterprise scale, families, students, heavy workloads, daily use)
+   - Value & Budget (MAX 2 OR 3 PROMPTS): Realistic pricing or cost-effectiveness evaluation.
 
-3. REALISTIC HUMAN STYLES ACROSS DIVERSE INDUSTRIES (EXAMPLES OF AUTHENTIC PHRASING):
-   Real consumers ask natural questions and focused search phrases. Notice how these examples span completely different domains:
-   - Performance / Use-case (No price): "Which wireless earbuds have the best mic quality for outdoor zoom calls?"
-   - Durability / Build (No price): "most durable running shoes for daily marathon training with high arch support"
-   - Comparison / Trade-off (No price): "Is an OLED screen worth it for office work or does IPS cause less eye strain?"
-   - Pain-point Solution (No price): "laptops with best cooling that don't overheat or throttle during long renders"
-   - Budget-conscious (Specific numerical price): "best camera phone under 35000 for low light video"
+3. PRICE VARIABILITY RULE:
+   - AT MOST 2 OR 3 out of {count} prompts should mention a specific budget, price ceiling, or cost question.
+   - The remaining 7 to 8 prompts MUST focus on outcomes, features, quality, or comparisons WITHOUT mentioning price.
+   - When price is mentioned, use realistic, numerical market figures appropriate to the sector (e.g. under 50000, under 1.5 lakh, under 800, under $1000). Never use vague clichés like "won't break the bank" or "under a certain budget".
 
-4. WHAT TO AVOID:
-   - NEVER mention the target brand name ("{brand_name}") or any alias in the query.
-   - DO NOT make all prompts follow the same template or price bracket. Vary the structure (some direct questions, some search phrases).
-   - DO NOT use cliché marketing idioms ("won't break the bank", "on a dime", "budget-friendly picks").
-   - DO NOT write textbook or academic survey questions ("How do the technical specifications of..."). Real shoppers ask practical buying questions.
+4. MULTI-DOMAIN EXAMPLES OF NATURAL HUMAN QUERIES:
+   Notice how natural buyers search across completely different sectors:
+   - Food / FMCG: "which brand of peanut butter has no hydrogenated oils or added sugar"
+   - IT / Enterprise Services: "best enterprise cloud migration partners with banking compliance experience"
+   - Consumer Electronics: "which laptops have the best cooling and battery for video editing"
+   - Beauty / Skincare: "gentle foaming cleanser for sensitive skin that doesn't cause breakouts"
+   - Footwear / Sports: "most comfortable road running shoes for daily marathon training with high arches"
+   - Tech (Budget specific): "best camera phone under 35000 for low light video"
 
-5. DIVERSITY:
-   Distribute the {count} prompts across different personas and use cases (e.g. professionals, students, enthusiasts, beginners, heavy users, commuters).
+5. CARDINAL RULES:
+   - ZERO TARGET BRAND MENTION: NEVER mention "{brand_name}" or its aliases in any prompt. Prompts must be unbiased discovery questions.
+   - NO FORMULAIC DUPLICATION: Do not reuse the same sentence structure or price across multiple prompts.
+   - NO TEXTBOOK SURVEY QUESTIONS: Write like a real human asking an AI assistant or search bar.
 
 Generate exactly {count} distinct, authentic prompt variants."""
 
@@ -72,6 +81,8 @@ def generate_prompt_variants(
     aliases_str = ", ".join(aliases) if aliases else "None"
     domains_str = ", ".join(domains) if domains else "None specified"
 
+    print(f"[OpenRouter API Call] Sending variant request to model: '{model}' for brand: '{brand_name}' (count={bounded_count})...", flush=True)
+
     response = client.beta.chat.completions.parse(
         model=model,
         messages=[
@@ -87,7 +98,7 @@ def generate_prompt_variants(
             },
             {
                 "role": "user",
-                "content": f"Generate {bounded_count} realistic, human consumer search prompts for shopping in the product space of {brand_name}.",
+                "content": f"Generate {bounded_count} authentic discovery and evaluation search prompts that real potential customers or decision-makers would search in the domain of {brand_name}.",
             },
         ],
         response_format=VariantGenerationResponse,
