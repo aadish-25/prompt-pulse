@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle, Search, Smile, Check, ExternalLink } from 'lucide-react';
+import { CheckCircle, Search, Smile, Check, ExternalLink, AlertCircle } from 'lucide-react';
 
 /**
  * PromptExplorer (AI Answers & Grounding) - Deep-dive execution inspector.
@@ -134,7 +134,11 @@ export default function PromptExplorer({ runs = [], focusedPromptId = null, acti
                   }`}>
                     Prompt {idx + 1}
                   </span>
-                  {hasMention ? (
+                  {run.status === 'failed' ? (
+                    <span className="px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 font-medium text-[10px] border border-rose-500/20 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" /> Failed
+                    </span>
+                  ) : hasMention ? (
                     <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-medium text-[10px] flex items-center gap-1">
                       <CheckCircle className="w-3 h-3" /> Mentioned
                     </span>
@@ -282,8 +286,21 @@ export default function PromptExplorer({ runs = [], focusedPromptId = null, acti
                   }} />
                 );
               })
+            ) : activeRun?.status === 'failed' || activeRun?.error ? (
+              <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 space-y-2">
+                <div className="flex items-center gap-2 font-bold text-xs text-rose-400">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>Execution Failed</span>
+                </div>
+                <p className="text-xs text-rose-200/90 leading-relaxed font-mono text-[11px] bg-surface-900/60 p-2.5 rounded-lg border border-rose-500/20 break-all">
+                  {activeRun.error || 'LLM provider error occurred during execution.'}
+                </p>
+                <p className="text-[11px] text-slate-400">
+                  Note: The batch execution can be retried cleanly now that worker concurrency has been optimized.
+                </p>
+              </div>
             ) : (
-              <p>No response recorded for this execution.</p>
+              <p className="text-slate-500 italic text-xs">No response recorded for this execution.</p>
             )}
           </div>
         </div>

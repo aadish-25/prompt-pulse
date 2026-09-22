@@ -79,8 +79,8 @@ export default function TrackedPromptsQueue({
   return (
     <section className="space-y-6">
       {/* Top Summary Bar */}
-      <div className="bg-surface-850 border border-surface-border rounded-xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="space-y-1">
+      <div className="bg-surface-850 border border-surface-border rounded-xl p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="space-y-1 min-w-0 max-w-2xl">
           <div className="flex items-center gap-2">
             <h3 className="text-base font-bold text-white tracking-tight">
               Tracked Prompts Queue
@@ -94,12 +94,12 @@ export default function TrackedPromptsQueue({
           </p>
         </div>
 
-        {/* Quick Actions */}
-        <div className="flex items-center gap-2.5 flex-wrap">
+        {/* Quick Actions — strictly right-aligned on a single line */}
+        <div className="flex items-center gap-2.5 shrink-0">
           <button
             type="button"
             onClick={onNavigateToCreator}
-            className="px-3.5 py-2 rounded-lg text-xs font-semibold bg-surface-800 hover:bg-surface-700 text-slate-200 border border-surface-border flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="whitespace-nowrap px-3.5 py-2 rounded-lg text-xs font-semibold bg-surface-800 hover:bg-surface-700 text-slate-200 border border-surface-border flex items-center gap-1.5 transition-colors cursor-pointer"
           >
             <Sparkles className="w-3.5 h-3.5 text-blue-400" />
             <span>Generate / Add Prompts</span>
@@ -109,7 +109,7 @@ export default function TrackedPromptsQueue({
             type="button"
             onClick={onRunBatch}
             disabled={isRunningBatch}
-            className="px-4 py-2 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white shadow-sm transition-all shadow-blue-600/20 flex items-center gap-2 cursor-pointer active:scale-95"
+            className="whitespace-nowrap px-4 py-2 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white shadow-sm transition-all shadow-blue-600/20 flex items-center gap-2 cursor-pointer active:scale-95"
           >
             {isRunningBatch ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />

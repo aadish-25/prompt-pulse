@@ -1,5 +1,6 @@
 import os
 import re
+import difflib
 from typing import Literal
 from pydantic import BaseModel
 from openai import OpenAI
@@ -27,7 +28,7 @@ class ExtractionResult(BaseModel):
 EXTRACTION_SYSTEM_PROMPT = (
     "You analyze an AI-generated answer about products for one specific "
     "brand: {target_brand}.\n\n"
-    "1. List every OTHER distinct brand name mentioned (exclude {target_brand} itself).\n"
+    "1. List every OTHER distinct brand name mentioned (exclude {target_brand} and common misspellings of it).\n"
     "2. Judge the sentiment specifically toward {target_brand}: "
     "'positive', 'neutral', 'negative', or 'not_mentioned' if it doesn't appear at all.\n"
     "3. Give a short one-sentence remark explaining that sentiment judgment, "
@@ -40,17 +41,27 @@ def find_target_mentions(
     answer: str, brand_name: str, aliases: list[str]
 ) -> list[ExtractedBrandMention]:
     results: list[ExtractedBrandMention] = []
-    names_to_check = [brand_name] + aliases
+    names_to_check = [brand_name] + (aliases or [])
 
     for line in answer.splitlines():
-        if not line.strip():
+        clean_line = line.strip()
+        if not clean_line:
             continue
+        matched = False
         for name in names_to_check:
             # word-boundary regex prevents false positives like matching
             # "boat" inside "sailboat" or "bata" inside "debate"
-            if re.search(rf"\b{re.escape(name)}\b", line, flags=re.IGNORECASE):
-                results.append(ExtractedBrandMention(sentence=line, matched_as=name))
+            if re.search(rf"\b{re.escape(name)}\b", clean_line, flags=re.IGNORECASE):
+                results.append(ExtractedBrandMention(sentence=clean_line, matched_as=name))
+                matched = True
                 break
+
+        # If no exact match, check for single-character typos (e.g. 'Lenevo' vs 'Lenovo')
+        if not matched and len(brand_name) >= 4:
+            for token in re.findall(r"\b[A-Za-z0-9\-_]{4,}\b", clean_line):
+                if difflib.SequenceMatcher(None, token.lower(), brand_name.lower()).ratio() >= 0.82:
+                    results.append(ExtractedBrandMention(sentence=clean_line, matched_as=token))
+                    break
 
     return results
 
@@ -78,8 +89,10 @@ def analyze_answer(answer: str, target_brand: str) -> ExtractionResult:
             other_brands=[], target_sentiment="not_mentioned", target_remark=""
         )
 
-    # safety net: strip target brand from its own competitor list if the model slips up
+    # safety net: strip target brand and close typos from competitor list
     result.other_brands = [
-        b for b in result.other_brands if b.lower() != target_brand.lower()
+        b for b in result.other_brands
+        if b.lower() != target_brand.lower()
+        and (len(target_brand) < 4 or difflib.SequenceMatcher(None, b.lower(), target_brand.lower()).ratio() < 0.82)
     ]
     return result
