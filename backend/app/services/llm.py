@@ -5,6 +5,7 @@ from datetime import date
 from urllib.parse import urlparse
 from pydantic import BaseModel
 from openai import OpenAI
+from tenacity import retry, stop_after_attempt, wait_exponential
 from app.services.search import search
 from app.services.citations import extract_cited
 from app.config import MAX_SEARCH_STEPS, MODEL, FORCE_MIN_SEARCHES, MIN_SEARCHES
@@ -15,6 +16,15 @@ client = OpenAI(
 )
 
 MAX_STEPS = MAX_SEARCH_STEPS + 1
+
+
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=8),
+    reraise=True,
+)
+def _chat_completion_with_retry(**kwargs):
+    return client.chat.completions.create(**kwargs)
 
 
 class LLMSource(BaseModel):
@@ -71,7 +81,8 @@ def get_domain(url: str) -> str:
     return urlparse(url).netloc.lower().removeprefix("www.")
 
 
-def run_prompt(prompt: str) -> PromptResult:
+def run_prompt(prompt: str, model: str | None = None) -> PromptResult:
+    active_model = model or MODEL
     queries: list[str] = []
     sources: list[LLMSource] = []  # every unique result, in order; index + 1 = its number
     number_of: dict[str, int] = {}  # url -> its number
@@ -127,8 +138,8 @@ def run_prompt(prompt: str) -> PromptResult:
                     "using only the sources you already have.",
                 }
             )
-        response = client.chat.completions.create(
-            model=MODEL,
+        response = _chat_completion_with_retry(
+            model=active_model,
             messages=messages,
             tools=TOOLS,
             tool_choice=tool_choice,
@@ -175,6 +186,6 @@ def run_prompt(prompt: str) -> PromptResult:
         answer=answer,
         queries=queries,
         sources=sources,
-        model=MODEL,
+        model=active_model,
         forced_min_searches=FORCE_MIN_SEARCHES,
     )

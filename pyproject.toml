@@ -11,6 +11,11 @@ dependencies = [
     "groq>=1.7.0",
     "openai>=3.17.0",
     "psycopg[binary]>=3.3.6",
+    "pytest>=9.1.1",
     "sqlalchemy>=2.0.54",
     "tavily-python>=0.8.4",
+    "tenacity>=9.1.4",
 ]
+
+[tool.pytest.ini_options]
+pythonpath = ["backend"]
