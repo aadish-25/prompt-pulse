@@ -50,6 +50,10 @@ export default function App() {
   const [citations, setCitations] = useState([]);
   const [runs, setRuns] = useState([]);
 
+  // Prompt creator state — lifted so candidates survive tab switches
+  const [candidates, setCandidates] = useState([]);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+
   // Execution config
   const [supportedModels, setSupportedModels] = useState([
     'openai/gpt-4o-mini',
@@ -145,6 +149,8 @@ export default function App() {
   const handleSelectProject = async (proj) => {
     setActiveProjectId(proj.id);
     setActiveProject(proj);
+    setCandidates([]);
+    setSelectedIds(new Set());
     await loadProjectData(proj.id);
     if (location.pathname !== '/dashboard') {
       navigate('/dashboard');
@@ -164,6 +170,8 @@ export default function App() {
         setActiveProject(null);
         setRuns([]);
         setPrompts([]);
+        setCandidates([]);
+        setSelectedIds(new Set());
         setSummary(EMPTY_SUMMARY);
         setCitations([]);
         showToast('Project deleted. Create a new project to get started.');
@@ -344,6 +352,10 @@ export default function App() {
               {activeTab === 'generator' && (
                 <PromptCreator
                   project={activeProject}
+                  candidates={candidates}
+                  selectedIds={selectedIds}
+                  onCandidatesChange={setCandidates}
+                  onSelectedIdsChange={setSelectedIds}
                   onAddPrompts={handleAddPrompts}
                   onGenerateVariants={handleGenerateVariants}
                   isGenerating={isGeneratingVariants}

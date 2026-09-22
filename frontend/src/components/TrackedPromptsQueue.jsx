@@ -147,117 +147,119 @@ export default function TrackedPromptsQueue({
         </div>
       </div>
 
-      {/* Prompts Container */}
-      <div className="bg-surface-850 border border-surface-border rounded-xl p-5 space-y-4">
-        {/* Top Pagination */}
-        <PaginationBar position="top" />
-
-        {/* Prompts Stack (10 per page) */}
-        <div className="space-y-2.5 py-1">
-          {paginatedPrompts.map((p, index) => {
-            const serialNo = startIndex + index + 1;
-            const hasRun = runMap.has(p.id);
-            const run = runMap.get(p.id);
-
-            return (
-              <div
-                key={p.id || serialNo}
-                className={`bg-surface-900 border ${
-                  hasRun ? 'border-surface-border hover:border-slate-700' : 'border-blue-500/30 bg-blue-500/5'
-                } rounded-xl p-4 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4`}
-              >
-                <div className="flex items-start gap-3.5 flex-1 min-w-0">
-                  {/* Serial Number Badge */}
-                  <div className="shrink-0 w-8 h-8 rounded-lg bg-surface-850 border border-surface-border flex items-center justify-center font-bold text-xs text-blue-400">
-                    #{serialNo}
-                  </div>
-
-                  <div className="space-y-1 flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[11px] font-semibold text-slate-400">
-                        Query #{serialNo}
-                      </span>
-                      {hasRun ? (
-                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-semibold border border-emerald-500/20 flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3" /> Tested & Grounded
-                        </span>
-                      ) : (
-                        <span className="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-300 text-[10px] font-semibold border border-blue-500/20 flex items-center gap-1">
-                          <Clock className="w-3 h-3" /> Ready for Next Batch Run
-                        </span>
-                      )}
-                      {!p.active && (
-                        <span className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 text-[10px] font-medium border border-surface-border">
-                          Inactive
-                        </span>
-                      )}
-                    </div>
-
-                    <p className="text-sm font-semibold text-white leading-snug">
-                      "{p.text}"
-                    </p>
-                  </div>
-                </div>
-
-                {/* Status and Action Buttons */}
-                <div className="flex items-center gap-2.5 shrink-0 self-end md:self-center">
-                  {/* Active / Inactive Toggle */}
-                  {onToggleActive && (
-                    <button
-                      type="button"
-                      onClick={() => onToggleActive(p.id, !p.active)}
-                      title={p.active ? 'Click to deactivate' : 'Click to activate'}
-                      className="p-1 rounded text-slate-400 hover:text-white transition-colors cursor-pointer flex items-center"
-                    >
-                      {p.active ? (
-                        <ToggleRight className="w-6 h-6 text-emerald-400" />
-                      ) : (
-                        <ToggleLeft className="w-6 h-6 text-slate-500" />
-                      )}
-                    </button>
-                  )}
-
-                  {/* Delete Prompt Button */}
-                  {onDeletePrompt && (
-                    <button
-                      type="button"
-                      onClick={() => onDeletePrompt(p.id)}
-                      title="Delete prompt from project"
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
-
-                  {hasRun ? (
-                    <button
-                      type="button"
-                      onClick={() => onNavigateToGrounding(run)}
-                      className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-surface-800 hover:bg-surface-700 text-blue-400 hover:text-blue-300 border border-surface-border flex items-center gap-1.5 transition-colors cursor-pointer"
-                    >
-                      <span>View Grounding</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                  ) : (
-                    <span className="text-[11px] text-slate-500 italic px-2">
-                      Queued
-                    </span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-
-          {totalCount === 0 && (
-            <div className="p-8 text-center text-slate-400 text-xs">
-              No prompts tracked in this project yet. Click "Generate / Add Prompts" to get started!
-            </div>
-          )}
+      {/* Prompts Container — only render when there are prompts */}
+      {totalCount === 0 ? (
+        <div className="bg-surface-850 border border-surface-border rounded-xl p-12 flex flex-col items-center justify-center text-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center">
+            <Sparkles className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-white mb-1.5">No prompts tracked yet</p>
+            <p className="text-xs text-slate-400 leading-relaxed max-w-xs mx-auto">
+              Use the <strong className="text-slate-300">AI Prompt Creator</strong> tab to generate or add consumer search queries for this brand project.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onNavigateToCreator}
+            className="mt-1 px-4 py-2 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm shadow-blue-600/20"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Go to AI Prompt Creator</span>
+          </button>
         </div>
+      ) : (
+        <div className="bg-surface-850 border border-surface-border rounded-xl p-5 space-y-4">
+          {/* Top Pagination */}
+          <PaginationBar position="top" />
 
-        {/* Bottom Pagination */}
-        <PaginationBar position="bottom" />
-      </div>
+          {/* Prompts Stack (10 per page) */}
+          <div className="space-y-2.5 py-1">
+            {paginatedPrompts.map((p, index) => {
+              const serialNo = startIndex + index + 1;
+              const hasRun = runMap.has(p.id);
+              const run = runMap.get(p.id);
+
+              return (
+                <div
+                  key={p.id || serialNo}
+                  className={`bg-surface-900 border ${
+                    hasRun ? 'border-surface-border hover:border-slate-700' : 'border-blue-500/30 bg-blue-500/5'
+                  } rounded-xl p-4 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4`}
+                >
+                  <div className="flex items-start gap-3.5 flex-1 min-w-0">
+                    <div className="shrink-0 w-8 h-8 rounded-lg bg-surface-850 border border-surface-border flex items-center justify-center font-bold text-xs text-blue-400">
+                      #{serialNo}
+                    </div>
+                    <div className="space-y-1 flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[11px] font-semibold text-slate-400">Query #{serialNo}</span>
+                        {hasRun ? (
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-semibold border border-emerald-500/20 flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" /> Tested & Grounded
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-300 text-[10px] font-semibold border border-blue-500/20 flex items-center gap-1">
+                            <Clock className="w-3 h-3" /> Ready for Next Batch Run
+                          </span>
+                        )}
+                        {!p.active && (
+                          <span className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 text-[10px] font-medium border border-surface-border">
+                            Inactive
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm font-semibold text-white leading-snug">"{p.text}"</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2.5 shrink-0 self-end md:self-center">
+                    {onToggleActive && (
+                      <button
+                        type="button"
+                        onClick={() => onToggleActive(p.id, !p.active)}
+                        title={p.active ? 'Deactivate' : 'Activate'}
+                        className="p-1 rounded text-slate-400 hover:text-white transition-colors cursor-pointer"
+                      >
+                        {p.active ? (
+                          <ToggleRight className="w-6 h-6 text-emerald-400" />
+                        ) : (
+                          <ToggleLeft className="w-6 h-6 text-slate-500" />
+                        )}
+                      </button>
+                    )}
+                    {onDeletePrompt && (
+                      <button
+                        type="button"
+                        onClick={() => onDeletePrompt(p.id)}
+                        title="Delete prompt"
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                    {hasRun ? (
+                      <button
+                        type="button"
+                        onClick={() => onNavigateToGrounding(run)}
+                        className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-surface-800 hover:bg-surface-700 text-blue-400 hover:text-blue-300 border border-surface-border flex items-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <span>View Grounding</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    ) : (
+                      <span className="text-[11px] text-slate-500 italic px-2">Queued</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Bottom Pagination */}
+          <PaginationBar position="bottom" />
+        </div>
+      )}
     </section>
   );
 }
