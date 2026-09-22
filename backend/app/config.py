@@ -4,11 +4,26 @@ from dotenv import load_dotenv
 load_dotenv()
 
 DATABASE_URL = os.environ["DATABASE_URL"]
-ROUNDS = 3
+ROUNDS = 1
 MAX_SEARCH_STEPS = 5
 
+# AI Model Configuration
 MODEL = "openai/gpt-4o-mini"
+SUPPORTED_MODELS = [
+    "openai/gpt-4o-mini",
+    "openai/gpt-4o",
+    "anthropic/claude-3.5-haiku",
+    "google/gemini-2.5-flash",
+    "meta-llama/llama-3.3-70b-instruct",
+]
 
-FORCE_MIN_SEARCHES = True  # toggle: when True, model must search at least MIN_SEARCHES times before it's allowed to answer
+# Search ground enforcement
+FORCE_MIN_SEARCHES = True  # when True, model must search at least MIN_SEARCHES times
+MIN_SEARCHES = 3  # minimum searches floor
 
-MIN_SEARCHES = 3  # only used when FORCE_MIN_SEARCHES is True
+# Batch Execution Concurrency
+CONCURRENT_WORKERS = 3  # parallel workers for prompt execution in a batch
+
+# Prompt Variant Generation
+DEFAULT_VARIANT_COUNT = 5
+MAX_VARIANT_COUNT = 10

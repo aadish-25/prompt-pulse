@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class ProjectCreate(BaseModel):
@@ -17,6 +17,10 @@ class PromptCreate(BaseModel):
     text: str
 
 
+class PromptBulkCreate(BaseModel):
+    texts: list[str]
+
+
 class PromptUpdate(BaseModel):
     active: bool
 
@@ -27,6 +31,23 @@ class PromptOut(BaseModel):
     text: str
     active: bool
     model_config = {"from_attributes": True}
+
+
+class PromptVariantOut(BaseModel):
+    text: str
+    intent_category: str
+    rationale: str
+
+
+class VariantGenerateRequest(BaseModel):
+    seed_topic: str
+    count: int = Field(default=5, ge=1, le=10)
+
+
+class VariantGenerateResponse(BaseModel):
+    brand_name: str
+    seed_topic: str
+    variants: list[PromptVariantOut]
 
 
 class SearchQueryOut(BaseModel):
@@ -74,7 +95,8 @@ class PromptExecutionOut(BaseModel):
 
 
 class TrackingBatchCreate(BaseModel):
-    rounds: int = 3
+    rounds: int = Field(default=1, ge=1, le=3)
+    model: str | None = None
 
 
 class TrackingBatchOut(BaseModel):
@@ -101,3 +123,8 @@ class DomainStatsOut(BaseModel):
     domain: str
     retrieved: int
     cited: int
+
+
+class SupportedModelsOut(BaseModel):
+    default_model: str
+    supported_models: list[str]
