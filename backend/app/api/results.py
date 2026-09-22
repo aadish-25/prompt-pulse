@@ -28,6 +28,27 @@ def project_results(
     return q.all()
 
 
+@router.delete("/projects/{project_id}/results")
+def clear_project_results(project_id: int, db: Session = Depends(get_db)):
+    """Deletes all executions (and cascaded search queries, results, mentions, analyses) for a project."""
+    executions = (
+        db.query(models.PromptExecution)
+        .join(models.Prompt)
+        .filter(models.Prompt.project_id == project_id)
+        .all()
+    )
+    for ex in executions:
+        db.query(models.SearchQuery).filter_by(execution_id=ex.id).delete()
+        db.query(models.WebSearchResult).filter_by(execution_id=ex.id).delete()
+        db.query(models.BrandMention).filter_by(execution_id=ex.id).delete()
+        db.query(models.ExecutionAnalysis).filter_by(execution_id=ex.id).delete()
+        db.delete(ex)
+
+    db.query(models.TrackingBatch).filter_by(project_id=project_id).delete()
+    db.commit()
+    return {"message": "All execution results cleared successfully", "cleared_count": len(executions)}
+
+
 @router.get("/projects/{project_id}/summary", response_model=schemas.SummaryOut)
 def project_summary(project_id: int, db: Session = Depends(get_db)):
     project = db.get(models.Project, project_id)

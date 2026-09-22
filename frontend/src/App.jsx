@@ -33,6 +33,7 @@ import {
     addPromptsBulk,
     createProject,
     deleteProject,
+    clearProjectResults,
     EMPTY_SUMMARY,
 } from "./api/client";
 
@@ -224,6 +225,24 @@ export default function App() {
         }
     };
 
+    const handleClearResults = async () => {
+        if (!activeProjectId) return;
+        try {
+            const ok = await clearProjectResults(activeProjectId);
+            if (ok) {
+                setRuns([]);
+                setSummary(EMPTY_SUMMARY);
+                setCitations([]);
+                showToast("All execution test results cleared.");
+            } else {
+                showToast("Failed to clear results.");
+            }
+        } catch (err) {
+            console.error("Failed to clear results:", err);
+            showToast("Failed to clear results.");
+        }
+    };
+
     const handleNavigateToGrounding = (run) => {
         if (run) setFocusedPromptId(run.prompt_id || run.id);
         setActiveTab("explorer");
@@ -367,6 +386,7 @@ export default function App() {
                                     runs={runs}
                                     focusedPromptId={focusedPromptId}
                                     activeProject={activeProject}
+                                    onClearResults={handleClearResults}
                                 />
                             )}
                             {activeTab === "citations" && (

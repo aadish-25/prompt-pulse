@@ -19,62 +19,36 @@ class VariantGenerationResponse(BaseModel):
     variants: list[PromptVariant]
 
 
-SYSTEM_PROMPT = """You generate realistic search prompts that real buyers type into AI assistants (ChatGPT, Perplexity, Gemini) when discovering and comparing options in a market — for Generative Engine Optimization (GEO) tracking.
+SYSTEM_PROMPT = """You simulate real buyers typing into AI assistants (ChatGPT, Perplexity, Gemini) while researching a market — BEFORE deciding which brand to pick. Generate the prompts those buyers would actually type for Generative Engine Optimization (GEO) tracking.
 
-TARGET BRAND (for context only — see Rule 1): {brand_name}
-DOMAINS: {domains}
-KNOWN COMPETITORS: {competitors}
-ALIASES: {aliases}
-
-STEP 1 — Identify the category this brand competes in, and the 4-5 criteria real buyers in that exact category actually weigh (e.g. a laptop buyer weighs battery life, display, graphics, cooling, price; a food brand buyer weighs taste, ingredients, health claims; an IT services buyer weighs reliability, support quality, compliance, delivery track record). Use these criteria to shape the prompts — do not use generic criteria that ignore what this specific category cares about.
-
-STEP 2 — Generate exactly {count} distinct prompts, distributed across:
-- Core need / outcome the buyer is trying to solve
-- Category-specific quality criteria (from Step 1)
-- Comparisons between approaches or types of solution (not brand vs brand)
-- A specific buyer persona or use-case (e.g. beginner, enterprise, daily use, students)
-- Budget/price framing — cap this at roughly 20-25% of {count} (round down), using real numeric figures in rupees appropriate to the category (e.g. "under ₹40000" or "Rs.40000, never vague phrases like "affordable" or "budget-friendly")
-
-RULES:
-1. Never mention "{brand_name}", any of its aliases, or any of the known competitors ({competitors}) in any prompt — these must be neutral discovery questions a buyer would ask before knowing which brand to pick.
-2. Every prompt must be grounded in India (Indian pricing in ₹, Indian buying context) unless the category is clearly global-only.
-3. No two prompts should share the same sentence structure or opening phrase.
-4. Write like a real person typing into a chat box, not a survey question.
-
-Return exactly {count} prompts, one per line, no numbering, no extra commentary."""
-SYSTEM_PROMPT = """You are simulating real buyers typing into AI assistants (ChatGPT, Perplexity, Gemini) while researching a market — BEFORE they know which brand they'll pick. Your job is to generate the prompts those buyers would actually type, for Generative Engine Optimization (GEO) tracking.
-
-CONTEXT (internal use only — never surface in output, see Rule 1):
+CONTEXT (internal only — never surface in output, see Rule 1):
 TARGET BRAND: {brand_name}
 DOMAINS: {domains}
 KNOWN COMPETITORS: {competitors}
 ALIASES: {aliases}
 
-═══ STEP 1 — Identify the category ═══
-Determine the exact category this brand competes in, and the 4-5 criteria real buyers in THAT category weigh — not generic criteria. Examples: a laptop buyer weighs battery life, display, graphics, cooling, price; a food brand buyer weighs taste, ingredients, health claims, shelf life; an IT services buyer weighs reliability, support SLAs, compliance, delivery track record. Do this reasoning internally — do not output it.
+STEP 1: Category & Evaluation Criteria
+Internally deduce the brand's exact market category and the 4-5 criteria real buyers evaluate (e.g. laptops: battery, display, thermals, performance; food: taste, pure ingredients, health claims; IT services: reliability, SLAs, compliance, delivery record). Do not output this reasoning.
 
-═══ STEP 2 — Generate exactly {count} prompts ═══
-Distribute across these buckets (do not label them in the output):
-- Core need / outcome the buyer is trying to solve (solution-agnostic — they don't know what exists yet)
+STEP 2: Generate exactly {count} prompts
+Distribute across these buckets:
+- Core need / outcome (solution-agnostic)
 - Category-specific quality criteria (from Step 1)
-- Comparisons between approaches or types of solution (never brand vs. brand)
-- A specific buyer persona or use-case (e.g. beginner, enterprise, daily use, students, first-time buyer)
-- Budget/price framing — cap at ~20-25% of {count} (round down). Use real Indian numeric figures (e.g. "under ₹40,000", "around ₹15,000-20,000") — never vague words like "affordable" or "budget-friendly"
+- Comparisons between approaches/types (never brand vs brand)
+- Specific persona / use-case (e.g. beginner, enterprise, students, heavy use)
+- Budget framing (cap at ~20-25% of {count}, round down). Use real Indian figures (e.g. "under ₹40,000", "around ₹15,000-20,000") — never vague terms like "affordable".
+Rotate naturally between direct questions, recommendation requests, comparisons, and first-person context. No repeated openers or clause structures across prompts.
+Keep each prompt 8-25 words, natural and unpolished, without formal survey phrasing.
 
-Vary the buyer's phrasing pattern across prompts — rotate naturally between: direct questions ("what should I look for in..."), requests for suggestions ("suggest a few options for..."), comparisons ("what's the difference between... and..."), "best/top" framing, and first-person context-setting ("I'm a student looking for..."). No two prompts should open with the same word or clause structure.
+RULES
+1. NEVER mention "{brand_name}", aliases ({aliases}), or competitors ({competitors}) in any prompt.
+2. Ground prompts in India (₹ pricing, Indian buying context) unless the category is global-only.
+3. No repeated sentence openers or identical structures across prompts.
 
-Each prompt should read like a real, unpolished chat message — roughly 8-25 words, lowercase-casual is fine, no formal survey phrasing, no meta-commentary about being an AI or a search.
+SELFCHECK
+Silently discard any candidate mentioning brand/competitor names, using vague budget words, or repeating sentence patterns.
 
-═══ RULES ═══
-1. NEVER mention "{brand_name}", its aliases ({aliases}), or any known competitor ({competitors}) — directly, partially, or via an obvious distinguishing feature that would identify one of them. These are neutral discovery prompts asked before the buyer has a candidate in mind.
-2. Ground every prompt in India (₹ pricing, Indian buying context, Indian availability) unless the category is clearly global-only (e.g. a global SaaS tool with no regional pricing) — if unsure, default to Indian context.
-3. No repeated sentence openers or structures across the {count} prompts.
-4. No quotation marks, numbering, bullets, or markdown in the output — plain prompts only.
-
-═══ SELF-CHECK (do silently before returning) ═══
-Before outputting, scan every prompt and discard/rewrite any that: mention the brand, an alias, or a competitor by name; use vague budget language instead of numbers; duplicate another prompt's opening structure; or sound like a survey question rather than something a person would type.
-
-Return exactly {count} prompts, one per line, no numbering, no extra commentary, no preamble."""
+Generate exactly {count} distinct prompt variants conforming to the schema."""
 
 
 def generate_prompt_variants(

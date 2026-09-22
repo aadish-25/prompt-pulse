@@ -24,8 +24,6 @@ MAX_STEPS = MAX_SEARCH_STEPS + 1
     reraise=True,
 )
 def _chat_completion_with_retry(**kwargs):
-    if "max_tokens" not in kwargs:
-        kwargs["max_tokens"] = 1500
     return client.chat.completions.create(**kwargs)
 
 
@@ -50,14 +48,9 @@ class PromptResult(BaseModel):
 
 def build_system() -> str:
     return (
-        f"Today's date is {date.today():%B %d, %Y}. "
-        "Answer using web search when you need current facts. "
-        "After every claim that used a search result, add its number in square "
-        "brackets immediately after the claim, like this: Nike Pegasus is a good "
-        "choice [2]. Do not use any other citation style — no footnotes, no "
-        "parentheses, no special brackets. At the very end of your answer, add "
-        "exactly one line in this exact format: 'CITED: 2, 5, 7' listing every "
-        "source number you used anywhere in your answer."
+        f"Date: {date.today():%B %d, %Y}. Answer using web search. "
+        "After every factual claim from a search result, append its reference number in brackets, e.g. [2]. "
+        "Use only [X] brackets. At the very end, append one line: 'CITED: 1, 2' listing all cited source numbers."
     )
 
 
@@ -109,7 +102,7 @@ def run_prompt(prompt: str, model: str | None = None) -> PromptResult:
                     )
                 )
                 number_of[url] = len(sources)
-            lines.append(f"[{number_of[url]}] {r.title}\nURL: {url}\n{r.content}")
+            lines.append(f"[{number_of[url]}] {r.title}\n{r.content}")
         return "\n\n".join(lines) or "No results."
 
     answer = ""
@@ -140,13 +133,11 @@ def run_prompt(prompt: str, model: str | None = None) -> PromptResult:
                     "using only the sources you already have.",
                 }
             )
-        step_max_tokens = 1800 if last else 800
         response = _chat_completion_with_retry(
             model=active_model,
             messages=messages,
             tools=TOOLS,
             tool_choice=tool_choice,
-            max_tokens=step_max_tokens,
         )
         msg = response.choices[0].message
 
