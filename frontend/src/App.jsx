@@ -271,9 +271,9 @@ export default function App() {
   const handleAddPrompts = async (promptsList) => {
     try {
       await addPromptsBulk(activeProjectId, promptsList);
-      // Refresh database prompts
+      // Always refresh database prompts so state reflects actual DB after insert
       const updatedPrompts = await fetchProjectPrompts(activeProjectId);
-      if (updatedPrompts && updatedPrompts.length > 0) {
+      if (updatedPrompts) {
         setPrompts(updatedPrompts);
       }
     } catch (err) {

@@ -2,30 +2,46 @@ import React from 'react';
 import { TrendingUp, AlertTriangle } from 'lucide-react';
 
 export default function KpiCards({ summary, activeProject }) {
-  const brandName = activeProject?.brand_name || 'Amul';
-  const targetDomain = activeProject?.domain?.[0] || 'amul.com';
+  const brandName = activeProject?.brand_name || 'your brand';
+  const targetDomain = activeProject?.domain?.[0] || '';
 
   const totalRuns = summary?.total_runs ?? 0;
   const hasRuns = totalRuns > 0;
 
-  const visibilityPct = hasRuns && summary?.visibility_percentage != null 
-    ? summary.visibility_percentage.toFixed(1) 
+  const visibilityPct = hasRuns && summary?.visibility_percentage != null
+    ? summary.visibility_percentage.toFixed(1)
     : '0.0';
   const mentionedCount = summary?.mentioned_count ?? 0;
 
-  const citationPct = hasRuns && summary?.own_domain_citation_percentage != null 
-    ? summary.own_domain_citation_percentage.toFixed(1) 
+  const citationPct = hasRuns && summary?.own_domain_citation_percentage != null
+    ? summary.own_domain_citation_percentage.toFixed(1)
     : '0.0';
   const citedCount = summary?.own_domain_cited_count ?? 0;
 
-  const topCompetitor = hasRuns && summary?.top_competitors?.[0]?.brand 
-    ? summary.top_competitors[0].brand 
+  // Compute dominant sentiment from breakdown (most frequent wins)
+  const sentimentBreakdown = summary?.sentiment_breakdown || {};
+  const sentimentEntries = Object.entries(sentimentBreakdown).sort((a, b) => b[1] - a[1]);
+  const dominantSentiment = hasRuns && sentimentEntries.length > 0
+    ? sentimentEntries[0][0]
+    : null;
+  const dominantSentimentPct = hasRuns && totalRuns > 0 && sentimentEntries.length > 0
+    ? Math.round((sentimentEntries[0][1] / totalRuns) * 100)
+    : 0;
+  const sentimentBarWidth = hasRuns ? `${dominantSentimentPct}%` : '0%';
+  const sentimentColor = dominantSentiment === 'positive'
+    ? 'bg-emerald-500'
+    : dominantSentiment === 'negative'
+      ? 'bg-rose-500'
+      : 'bg-amber-400';
+
+  const topCompetitor = hasRuns && summary?.top_competitors?.[0]?.brand
+    ? summary.top_competitors[0].brand
     : (hasRuns ? 'None Detected' : 'No Runs Yet');
-  const topCompetitorRuns = hasRuns && summary?.top_competitors?.[0]?.count 
-    ? `${summary.top_competitors[0].count} runs` 
+  const topCompetitorRuns = hasRuns && summary?.top_competitors?.[0]?.count
+    ? `${summary.top_competitors[0].count} runs`
     : (hasRuns ? '0 runs' : 'No data');
-  const competitorCount = hasRuns && summary?.top_competitors?.length 
-    ? `${summary.top_competitors.length} Competitors` 
+  const competitorCount = hasRuns && summary?.top_competitors?.length
+    ? `${summary.top_competitors.length} Competitors`
     : (hasRuns ? '0 Competitors' : '0 Runs Executed');
 
   return (
@@ -47,7 +63,7 @@ export default function KpiCards({ summary, activeProject }) {
           )}
         </div>
         <p className="text-xs text-slate-400 mt-1 truncate">
-          {hasRuns 
+          {hasRuns
             ? `${brandName} explicitly recommended in ${mentionedCount} of ${totalRuns} test questions`
             : `No test runs executed yet for ${brandName}`}
         </p>
@@ -58,7 +74,7 @@ export default function KpiCards({ summary, activeProject }) {
         <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
           <span className="font-medium text-amber-200">Target Domain Citations</span>
           <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 font-semibold text-[10px] border border-amber-500/20">
-            {targetDomain}
+            {targetDomain || 'No domain tracked'}
           </span>
         </div>
         <div className="flex items-baseline gap-2 my-1">
@@ -81,14 +97,26 @@ export default function KpiCards({ summary, activeProject }) {
         </div>
         <div className="flex items-baseline gap-2 my-1">
           <span className="text-2xl font-bold text-white tracking-tight">
-            {hasRuns ? '100%' : 'N/A'}
+            {hasRuns && dominantSentiment ? `${dominantSentimentPct}%` : 'N/A'}
           </span>
-          <span className="text-xs text-emerald-400 font-medium">
-            {hasRuns ? 'Positive' : 'No evaluations'}
+          <span className={`text-xs font-medium capitalize ${
+            dominantSentiment === 'positive'
+              ? 'text-emerald-400'
+              : dominantSentiment === 'negative'
+                ? 'text-rose-400'
+                : dominantSentiment === 'neutral'
+                  ? 'text-amber-400'
+                  : 'text-slate-400'
+          }`}>
+            {hasRuns && dominantSentiment ? dominantSentiment : 'No evaluations'}
           </span>
         </div>
-        <div className="w-full bg-surface-800 h-1.5 rounded-full mt-2 overflow-hidden flex">
-          <div className={`${hasRuns ? 'bg-emerald-500' : 'bg-slate-700'} h-full w-full`} title={hasRuns ? "100% Positive" : "No data"}></div>
+        <div className="w-full bg-surface-800 h-1.5 rounded-full mt-2 overflow-hidden">
+          <div
+            className={`${hasRuns && dominantSentiment ? sentimentColor : 'bg-slate-700'} h-full transition-all`}
+            style={{ width: sentimentBarWidth }}
+            title={hasRuns && dominantSentiment ? `${dominantSentimentPct}% ${dominantSentiment}` : 'No data'}
+          />
         </div>
       </div>
 
