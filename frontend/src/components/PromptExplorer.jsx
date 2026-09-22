@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle, Search, Smile } from 'lucide-react';
+import { CheckCircle, Search, Smile, Check, ExternalLink } from 'lucide-react';
 
 /**
  * PromptExplorer (AI Answers & Grounding) - Deep-dive execution inspector.
- * Completely free of boxy font-mono, with clean proportional typography.
+ * Accurately aligns citation numbers between the AI answer and the sources table.
  */
 export default function PromptExplorer({ runs = [], focusedPromptId = null }) {
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [sourceFilter, setSourceFilter] = useState('cited'); // 'cited' | 'all'
 
   // If focusedPromptId changes, switch to that run
   useEffect(() => {
@@ -17,9 +18,18 @@ export default function PromptExplorer({ runs = [], focusedPromptId = null }) {
   }, [focusedPromptId, runs]);
 
   const activeRun = runs[selectedIndex] || runs[0];
+
+  // Map each search result with its TRUE 1-based reference number from search retrieval order
+  const allWebResults = (activeRun?.web_search_results || []).map((s, idx) => ({
+    ...s,
+    refNumber: idx + 1
+  }));
+
+  const citedSources = allWebResults.filter(s => s.cited);
+  const displayedSources = sourceFilter === 'cited' ? citedSources : allWebResults;
+
   const targetMentionsCount = activeRun?.brand_mentions?.filter(m => m.is_target || m.brand_name === 'Amul')?.length || 4;
-  const targetCited = activeRun?.web_search_results?.some(s => (s.domain.includes('amul.com') && s.cited)) ? 1 : 0;
-  const citedSources = activeRun?.web_search_results?.filter(s => s.cited) || [];
+  const targetCited = allWebResults.some(s => s.domain.includes('amul.com') && s.cited) ? 1 : 0;
   const totalCitations = citedSources.length || 5;
 
   const topCompetitorName = activeRun?.analysis?.other_brands?.[0] || 'Mother Dairy';
@@ -210,35 +220,86 @@ export default function PromptExplorer({ runs = [], focusedPromptId = null }) {
           </div>
         </div>
 
-        {/* Cited Sources Table */}
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-slate-300 uppercase tracking-wider">
-              All {citedSources.length || 5} Cited Sources for this Prompt
-            </span>
-            <span className="text-[10px] text-slate-400">Tavily Relevance Score</span>
+        {/* Grounding Sources Table with Accurate Ref Matching */}
+        <div className="space-y-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <span className="text-[11px] font-semibold text-slate-300 uppercase tracking-wider block">
+                Grounding Sources ({citedSources.length} Cited out of {allWebResults.length} Retrieved)
+              </span>
+              <span className="text-[11px] text-slate-500">
+                Ref tags [X] directly match the citation numbers in the response above
+              </span>
+            </div>
+
+            {/* Filter Toggle: Cited Only vs All Retrieved */}
+            <div className="flex items-center rounded-lg bg-surface-900 border border-surface-border p-0.5 text-[11px]">
+              <button
+                type="button"
+                onClick={() => setSourceFilter('cited')}
+                className={`px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer ${
+                  sourceFilter === 'cited'
+                    ? 'bg-blue-600 text-white font-semibold'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Cited Only ({citedSources.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setSourceFilter('all')}
+                className={`px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer ${
+                  sourceFilter === 'all'
+                    ? 'bg-blue-600 text-white font-semibold'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                All Retrieved ({allWebResults.length})
+              </button>
+            </div>
           </div>
 
-          <div className="border border-surface-border rounded-lg overflow-hidden max-h-44 overflow-y-auto custom-scrollbar">
+          <div className="border border-surface-border rounded-lg overflow-hidden max-h-52 overflow-y-auto custom-scrollbar">
             <table className="w-full text-left text-xs font-sans">
               <thead className="bg-surface-800 text-slate-400 border-b border-surface-border sticky top-0 z-10">
                 <tr>
-                  <th className="py-2 px-3 font-medium">Ref</th>
+                  <th className="py-2 px-3 font-medium w-16">Ref</th>
                   <th className="py-2 px-3 font-medium">Domain</th>
                   <th className="py-2 px-3 font-medium">Article Title & URL</th>
-                  <th className="py-2 px-3 font-medium text-right">Tavily Score</th>
+                  <th className="py-2 px-3 font-medium text-center w-20">Status</th>
+                  <th className="py-2 px-3 font-medium text-right w-24">Tavily Score</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-border text-slate-300">
-                {citedSources.map((source, idx) => (
-                  <tr key={idx} className="hover:bg-surface-800/40">
-                    <td className="py-2 px-3 text-blue-400 font-bold">[{idx + 1}]</td>
-                    <td className="py-2 px-3 text-white font-medium">{source.domain}</td>
+                {displayedSources.map((source, idx) => (
+                  <tr 
+                    key={idx} 
+                    className={`${source.cited ? 'bg-blue-500/5 hover:bg-blue-500/10' : 'hover:bg-surface-800/40 opacity-75'} transition-colors`}
+                  >
+                    <td className="py-2 px-3 text-blue-400 font-bold whitespace-nowrap">
+                      [{source.refNumber}]
+                    </td>
+                    <td className="py-2 px-3 text-white font-medium whitespace-nowrap">
+                      {source.domain}
+                    </td>
                     <td className="py-2 px-3 truncate max-w-xs text-slate-300">
-                      <div className="font-medium text-white truncate">{source.title || source.domain}</div>
+                      <div className="font-medium text-white truncate" title={source.title}>
+                        {source.title || source.domain}
+                      </div>
                       <div className="text-[10px] text-slate-500 truncate">{source.url}</div>
                     </td>
-                    <td className="py-2 px-3 text-right text-emerald-400 font-semibold">
+                    <td className="py-2 px-3 text-center whitespace-nowrap">
+                      {source.cited ? (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/20 inline-flex items-center gap-1">
+                          <Check className="w-3 h-3" /> Cited
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-slate-500">
+                          Retrieved
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-2 px-3 text-right text-emerald-400 font-semibold whitespace-nowrap">
                       {(source.score || 0.85).toFixed(3)}
                     </td>
                   </tr>

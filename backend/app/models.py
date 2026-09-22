@@ -41,8 +41,8 @@ class PromptExecution(Base):
     duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
 
-    search_queries: Mapped[list["SearchQuery"]] = relationship(back_populates="execution")
-    web_search_results: Mapped[list["WebSearchResult"]] = relationship(back_populates="execution")
+    search_queries: Mapped[list["SearchQuery"]] = relationship(back_populates="execution", order_by="SearchQuery.id.asc()")
+    web_search_results: Mapped[list["WebSearchResult"]] = relationship(back_populates="execution", order_by="WebSearchResult.id.asc()")
     brand_mentions: Mapped[list["BrandMention"]] = relationship(back_populates="execution")
     analysis: Mapped["ExecutionAnalysis | None"] = relationship(
         back_populates="execution", uselist=False

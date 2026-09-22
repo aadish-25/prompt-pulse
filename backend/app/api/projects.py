@@ -71,7 +71,12 @@ def add_prompts_bulk(
 @router.get("/projects/{project_id}/prompts", response_model=list[schemas.PromptOut])
 def list_prompts(project_id: int, db: Session = Depends(get_db)):
     get_project_or_404(db, project_id)
-    return db.query(models.Prompt).filter_by(project_id=project_id).all()
+    return (
+        db.query(models.Prompt)
+        .filter_by(project_id=project_id)
+        .order_by(models.Prompt.id.asc())
+        .all()
+    )
 
 
 @router.patch("/prompts/{prompt_id}", response_model=schemas.PromptOut)
