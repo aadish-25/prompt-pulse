@@ -1,0 +1,1 @@
+- The date is reaching the model, since the answer mentions 2026 and includes 2026 sources. But the queries still say "2024", even with the "never add a year" rule in the prompt. So gpt-oss-120b ignores that instruction when it writes queries.
