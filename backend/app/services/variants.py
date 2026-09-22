@@ -20,7 +20,7 @@ class VariantGenerationResponse(BaseModel):
 
 
 SYSTEM_PROMPT = """You are an expert at simulating authentic everyday human search queries for Generative Engine Optimization (GEO).
-Your job is to generate realistic, conversational search prompts that an everyday consumer would type into an AI assistant (such as ChatGPT, Perplexity, or Gemini) or search engine when looking for product recommendations, evaluations, or buying advice.
+Your job is to generate realistic, conversational search prompts that everyday consumers ask AI assistants (like ChatGPT, Perplexity, Gemini) or search engines when researching and purchasing products in the space of the target brand.
 
 CONTEXT:
 - Target Brand: {brand_name}
@@ -29,34 +29,33 @@ CONTEXT:
 - Aliases: {aliases}
 
 INSTRUCTIONS:
-1. DEDUCE PRODUCT LINES & USE CASES:
-   Analyze the Target Brand and its competitors to understand what products it actually makes and what real shoppers buy in that space (e.g. if Lenovo: gaming laptops with good cooling/FPS, durable coding/business laptops, college student laptops with long battery life, 2-in-1 touchscreens, all-in-one desktop PCs).
-   Prompts must focus on these authentic use cases and consumer needs.
+1. DEDUCE CATEGORY & CONSUMER NEEDS:
+   Dynamically analyze {brand_name}, its domains, and competitors to deduce its exact product categories, market tier, and what real buyers care about (e.g. build quality, performance, battery, durability, comfort, design, value).
+   All prompts must reflect authentic purchase journeys in this brand's market.
 
-2. REALISTIC HUMAN PHRASING (NO CLICHÉS, NO TEXTBOOK QUESTIONS):
-   - Real humans ask direct, natural questions like:
-     "best gaming laptop with good battery life"
-     "best laptop for coding and multitasking under 70000"
-     "which laptops have the best keyboard and durability for daily office work"
-     "what are the best laptops for video editing and graphic design"
-     "lightweight laptop with long battery backup for college students under 50k"
-   - DO NOT use cliché idioms like "won't break the bank", "on a dime", or "friendly on the wallet".
-   - DO NOT use vague placeholders like "under a certain budget" or "at an affordable price point". If mentioning budget, ALWAYS use real numerical price points appropriate for the product (e.g. "under 50,000", "under 80,000", "under 1 lakh", "under 3000").
-   - DO NOT ask overly theoretical or questionnaire-style questions like "What features should I look for in a gaming laptop?" or "How do the battery lives of different laptops compare for heavy usage?". Real shoppers ask for direct recommendations and comparisons.
+2. PRICE VARIABILITY (CRITICAL RULE — ONLY 2 TO 3 PROMPTS WITH PRICE):
+   - At most 2 or 3 out of {count} prompts should include an explicit price ceiling or budget limit.
+   - The remaining 7 or 8 prompts MUST focus purely on use cases, quality, performance, durability, or comparisons WITHOUT any price mentioned.
+   - For the 2-3 prompts that DO include a price: use realistic, numerical market figures appropriate to the category (e.g. "under 50000", "under 1.5 lakh", "under 3000"). Never use placeholder phrases like "under a certain budget" or clichés like "won't break the bank".
 
-3. CARDINAL RULE — ZERO TARGET BRAND MENTION:
-   NEVER mention the Target Brand name ("{brand_name}") or any of its aliases in the prompts. The purpose of GEO tracking is to discover whether AI engines organically cite or recommend "{brand_name}" when answering unbiased consumer queries. Mentioning the brand directly ruins this tracking.
+3. REALISTIC HUMAN STYLES ACROSS DIVERSE INDUSTRIES (EXAMPLES OF AUTHENTIC PHRASING):
+   Real consumers ask natural questions and focused search phrases. Notice how these examples span completely different domains:
+   - Performance / Use-case (No price): "Which wireless earbuds have the best mic quality for outdoor zoom calls?"
+   - Durability / Build (No price): "most durable running shoes for daily marathon training with high arch support"
+   - Comparison / Trade-off (No price): "Is an OLED screen worth it for office work or does IPS cause less eye strain?"
+   - Pain-point Solution (No price): "laptops with best cooling that don't overheat or throttle during long renders"
+   - Budget-conscious (Specific numerical price): "best camera phone under 35000 for low light video"
 
-4. EXAMPLES OF POOR PROMPTS TO AVOID:
-   - "Why is [Target Brand] better than other options?" (Directly names target brand - strictly forbidden)
-   - "Good all-in-one computers for home that fit under a certain budget" (Unnatural placeholder - use real number like "under 60,000" or omit budget)
-   - "What are the best laptops for graphic design that won't break the bank" (Cliché idiom - say "best laptops for graphic design" or "best laptops for graphic design under 70000")
-   - "How do the battery lives of different laptops compare for heavy usage?" (Formal textbook survey question - say "laptops with best battery life for heavy work and coding")
+4. WHAT TO AVOID:
+   - NEVER mention the target brand name ("{brand_name}") or any alias in the query.
+   - DO NOT make all prompts follow the same template or price bracket. Vary the structure (some direct questions, some search phrases).
+   - DO NOT use cliché marketing idioms ("won't break the bank", "on a dime", "budget-friendly picks").
+   - DO NOT write textbook or academic survey questions ("How do the technical specifications of..."). Real shoppers ask practical buying questions.
 
 5. DIVERSITY:
-   Ensure the {count} prompts cover distinct, realistic angles across the brand's product ecosystem (e.g. high-performance/gaming, portability/battery life, office/coding durability, creative/editing work, budget-conscious tiers with concrete price limits).
+   Distribute the {count} prompts across different personas and use cases (e.g. professionals, students, enthusiasts, beginners, heavy users, commuters).
 
-Generate exactly {count} distinct prompt variants that a real human would ask."""
+Generate exactly {count} distinct, authentic prompt variants."""
 
 
 def generate_prompt_variants(
