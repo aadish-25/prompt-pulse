@@ -47,9 +47,14 @@ class PromptExecution(Base):
     analysis: Mapped["ExecutionAnalysis | None"] = relationship(
         back_populates="execution", uselist=False
     )
+    prompt: Mapped["Prompt"] = relationship()
     batch_id: Mapped[int | None] = mapped_column(
         ForeignKey("tracking_batches.id"), nullable=True
     )
+
+    @property
+    def prompt_text(self) -> str | None:
+        return self.prompt.text if self.prompt else None
 
 
 class SearchQuery(Base):

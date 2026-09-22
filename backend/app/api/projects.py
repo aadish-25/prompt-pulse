@@ -14,6 +14,11 @@ def get_project_or_404(db: Session, project_id: int):
     return project
 
 
+@router.get("/projects", response_model=list[schemas.ProjectOut])
+def list_projects(db: Session = Depends(get_db)):
+    return db.query(models.Project).all()
+
+
 @router.post("/projects", response_model=schemas.ProjectOut)
 def create_project(body: schemas.ProjectCreate, db: Session = Depends(get_db)):
     project = models.Project(**body.model_dump())

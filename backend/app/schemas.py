@@ -81,6 +81,7 @@ class WebSearchResultOut(BaseModel):
 class PromptExecutionOut(BaseModel):
     id: int
     prompt_id: int
+    prompt_text: str | None = None
     round: int
     status: str
     raw_answer: str | None
