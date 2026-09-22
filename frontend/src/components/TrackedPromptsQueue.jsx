@@ -13,7 +13,8 @@ export default function TrackedPromptsQueue({
   onNavigateToGrounding,
   onNavigateToCreator,
   onRunBatch,
-  isRunningBatch = false
+  isRunningBatch = false,
+  batchProgress = null
 }) {
   const PAGE_SIZE = 10;
   const [currentPage, setCurrentPage] = useState(1);
@@ -115,7 +116,13 @@ export default function TrackedPromptsQueue({
             ) : (
               <Play className="w-3.5 h-3.5 fill-current" />
             )}
-            <span>{isRunningBatch ? 'Executing Batch...' : 'Run Tracking Batch'}</span>
+            <span>
+              {isRunningBatch
+                ? (batchProgress && batchProgress.total > 0
+                    ? `Executing Batch (${batchProgress.completed}/${batchProgress.total})...`
+                    : 'Executing Batch...')
+                : 'Run Tracking Batch'}
+            </span>
           </button>
         </div>
       </div>

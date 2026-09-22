@@ -53,19 +53,49 @@ export async function fetchProjectCitations(projectId = 4) {
 }
 
 /**
- * Fetch batch execution runs (or project executions).
+ * Fetch all execution runs for a project directly from the database.
  */
-export async function fetchBatchRuns(batchId = 4) {
+export async function fetchProjectResults(projectId = 4) {
   try {
-    const res = await fetch(`${API_BASE}/batches/${batchId}/runs`);
+    const res = await fetch(`${API_BASE}/projects/${projectId}/results`);
     if (res.ok) {
       const data = await res.json();
       if (data && data.length > 0) return data;
     }
   } catch (e) {
-    console.warn('API unavailable, using fallback batch runs', e);
+    console.warn('API unavailable, using fallback results', e);
   }
   return FALLBACK_RUNS;
+}
+
+/**
+ * Fetch batch execution runs (maps to project results for seamless compatibility).
+ */
+export async function fetchBatchRuns(projectIdOrBatchId = 4) {
+  return await fetchProjectResults(projectIdOrBatchId);
+}
+
+/**
+ * Poll a tracking batch until it finishes execution.
+ */
+export async function pollBatchUntilDone(batchId, onProgress, maxSeconds = 180) {
+  const start = Date.now();
+  while (Date.now() - start < maxSeconds * 1000) {
+    try {
+      const res = await fetch(`${API_BASE}/batches/${batchId}`);
+      if (res.ok) {
+        const batch = await res.json();
+        if (onProgress) onProgress(batch);
+        if (batch.status === 'done' || batch.status === 'failed') {
+          return batch;
+        }
+      }
+    } catch (e) {
+      console.warn('Batch poll error:', e);
+    }
+    await new Promise(resolve => setTimeout(resolve, 2000));
+  }
+  return null;
 }
 
 /**
@@ -100,11 +130,17 @@ export async function triggerBatchRun(projectId = 4, rounds = 1, model = 'openai
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ rounds, model })
     });
-    if (res.ok) return await res.json();
+    if (res.ok) {
+      return await res.json();
+    } else {
+      const err = await res.json().catch(() => ({}));
+      console.error('Batch trigger error:', err);
+      return { error: err.detail || 'Failed to start batch execution' };
+    }
   } catch (e) {
     console.warn('API batch trigger unavailable, using mock batch', e);
+    return { error: e.message || 'API connection failed' };
   }
-  return { id: 6, status: 'running', total_runs: 5 * rounds, completed_runs: 0, failed_runs: 0 };
 }
 
 /**
