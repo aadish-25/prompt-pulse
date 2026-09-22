@@ -1,27 +1,50 @@
 # llm decides what to search, tavily searches it and gives results
+import os
 import json
 from datetime import date
 from urllib.parse import urlparse
-from groq import Groq
+from pydantic import BaseModel
+from openai import OpenAI
 from app.services.search import search
 from app.services.citations import extract_cited
-from app.config import MAX_SEARCH_STEPS
+from app.config import MAX_SEARCH_STEPS, MODEL, FORCE_MIN_SEARCHES, MIN_SEARCHES
 
+client = OpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key=os.environ["OPENROUTER_API_KEY"],
+)
 
-client = Groq()
-MODEL = "qwen/qwen3.8-27b"
 MAX_STEPS = MAX_SEARCH_STEPS + 1
+
+
+class LLMSource(BaseModel):
+    """One search result as seen by the LLM loop. Internal — not exposed via API."""
+    title: str
+    url: str
+    content: str
+    domain: str
+    cited: bool = False
+
+
+class PromptResult(BaseModel):
+    """Everything run_prompt returns. Internal — the API layer maps this to RunOut."""
+    answer: str
+    queries: list[str]
+    sources: list[LLMSource]
+    model: str
+    forced_min_searches: bool
 
 
 def build_system() -> str:
     return (
         f"Today's date is {date.today():%B %d, %Y}. "
-        "Never add a year to a search query unless the user's question includes one and use the year according the usecase and not randomly based on cut-off date of training data. "
         "Answer using web search when you need current facts. "
-        "Search results are numbered like [1], [2]. Cite the sources you used "
-        "by number in square brackets, like [1][3], and use no other citation "
-        "format. End your answer with a line: 'Sources used: 1, 3, 5'. "
-        "Only cite numbers that appeared in search results."
+        "After every claim that used a search result, add its number in square "
+        "brackets immediately after the claim, like this: Nike Pegasus is a good "
+        "choice [2]. Do not use any other citation style — no footnotes, no "
+        "parentheses, no special brackets. At the very end of your answer, add "
+        "exactly one line in this exact format: 'CITED: 2, 5, 7' listing every "
+        "source number you used anywhere in your answer."
     )
 
 
@@ -47,9 +70,9 @@ def get_domain(url: str) -> str:
     return urlparse(url).netloc.lower().removeprefix("www.")
 
 
-def run_prompt(prompt: str) -> dict:
+def run_prompt(prompt: str) -> PromptResult:
     queries: list[str] = []
-    sources: list[dict] = []  # every unique result, in order; index + 1 = its number
+    sources: list[LLMSource] = []  # every unique result, in order; index + 1 = its number
     number_of: dict[str, int] = {}  # url -> its number
     messages = [
         {"role": "system", "content": build_system()},
@@ -60,23 +83,40 @@ def run_prompt(prompt: str) -> dict:
         queries.append(query)
         lines = []
         for r in search(query):
-            url = r["url"]
+            url = r.url
             if url not in number_of:
                 sources.append(
-                    {
-                        "title": r["title"],
-                        "url": url,
-                        "content": r["content"],
-                        "domain": get_domain(url),
-                    }
+                    LLMSource(
+                        title=r.title,
+                        url=url,
+                        content=r.content,
+                        domain=get_domain(url),
+                    )
                 )
                 number_of[url] = len(sources)
-            lines.append(f"[{number_of[url]}] {r['title']}\nURL: {url}\n{r['content']}")
+            lines.append(f"[{number_of[url]}] {r.title}\nURL: {url}\n{r.content}")
         return "\n\n".join(lines) or "No results."
 
     answer = ""
-    for step in range(MAX_STEPS):
-        last = step == MAX_STEPS - 1
+    loop_limit = MAX_STEPS + (1 if FORCE_MIN_SEARCHES else 0)
+    for step in range(loop_limit):
+        at_natural_end = step == MAX_STEPS - 1
+        at_hard_end = step == loop_limit - 1
+        last = at_natural_end or at_hard_end
+
+        # Three-way tool_choice priority:
+        #   1. last step → "none"  (must write answer, no tool calls allowed)
+        #   2. below MIN_SEARCHES floor → "required"  (must call at least one
+        #      tool, so msg.tool_calls is never empty and the early-exit branch
+        #      `not msg.tool_calls` cannot fire before the floor is reached)
+        #   3. otherwise → "auto"  (model decides)
+        if last:
+            tool_choice = "none"
+        elif FORCE_MIN_SEARCHES and len(queries) < MIN_SEARCHES:
+            tool_choice = "required"
+        else:
+            tool_choice = "auto"
+
         if last:
             messages.append(
                 {
@@ -89,7 +129,7 @@ def run_prompt(prompt: str) -> dict:
             model=MODEL,
             messages=messages,
             tools=TOOLS,
-            tool_choice="none" if last else "auto",
+            tool_choice=tool_choice,
         )
         msg = response.choices[0].message
 
@@ -127,6 +167,12 @@ def run_prompt(prompt: str) -> dict:
     # which sources did the answer actually cite?
     cited = extract_cited(answer)
     for i, s in enumerate(sources, start=1):
-        s["cited"] = i in cited
+        s.cited = i in cited
 
-    return {"answer": answer, "queries": queries, "sources": sources, "model": MODEL}
+    return PromptResult(
+        answer=answer,
+        queries=queries,
+        sources=sources,
+        model=MODEL,
+        forced_min_searches=FORCE_MIN_SEARCHES,
+    )
