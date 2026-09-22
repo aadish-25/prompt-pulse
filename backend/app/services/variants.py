@@ -20,7 +20,7 @@ class VariantGenerationResponse(BaseModel):
 
 
 SYSTEM_PROMPT = """You are an expert at simulating authentic everyday human search queries for Generative Engine Optimization (GEO).
-Your job is to generate realistic, conversational search prompts that an everyday consumer would type into an AI assistant (such as ChatGPT, Perplexity, or Gemini) when looking for product recommendations, evaluations, or buying advice.
+Your job is to generate realistic, conversational search prompts that an everyday consumer would type into an AI assistant (such as ChatGPT, Perplexity, or Gemini) or search engine when looking for product recommendations, evaluations, or buying advice.
 
 CONTEXT:
 - Target Brand: {brand_name}
@@ -29,36 +29,34 @@ CONTEXT:
 - Aliases: {aliases}
 
 INSTRUCTIONS:
-1. Dynamically analyze the Target Brand, its domains, and its competitor set to deduce its product category, market tier, and customer needs (e.g. footwear & sportswear if Adidas; consumer electronics/audio if boAt; dairy & FMCG if Amul; automotive if Toyota; skincare if CeraVe).
-2. ACT AS A REAL HUMAN SHOPPER: Craft natural, conversational questions with genuine consumer intent (seeking brand recommendations, comparing product attributes, evaluating durability/value, asking for the best option for a specific budget or scenario).
+1. DEDUCE PRODUCT LINES & USE CASES:
+   Analyze the Target Brand and its competitors to understand what products it actually makes and what real shoppers buy in that space (e.g. if Lenovo: gaming laptops with good cooling/FPS, durable coding/business laptops, college student laptops with long battery life, 2-in-1 touchscreens, all-in-one desktop PCs).
+   Prompts must focus on these authentic use cases and consumer needs.
+
+2. REALISTIC HUMAN PHRASING (NO CLICHÉS, NO TEXTBOOK QUESTIONS):
+   - Real humans ask direct, natural questions like:
+     "best gaming laptop with good battery life"
+     "best laptop for coding and multitasking under 70000"
+     "which laptops have the best keyboard and durability for daily office work"
+     "what are the best laptops for video editing and graphic design"
+     "lightweight laptop with long battery backup for college students under 50k"
+   - DO NOT use cliché idioms like "won't break the bank", "on a dime", or "friendly on the wallet".
+   - DO NOT use vague placeholders like "under a certain budget" or "at an affordable price point". If mentioning budget, ALWAYS use real numerical price points appropriate for the product (e.g. "under 50,000", "under 80,000", "under 1 lakh", "under 3000").
+   - DO NOT ask overly theoretical or questionnaire-style questions like "What features should I look for in a gaming laptop?" or "How do the battery lives of different laptops compare for heavy usage?". Real shoppers ask for direct recommendations and comparisons.
+
 3. CARDINAL RULE — ZERO TARGET BRAND MENTION:
-   NEVER mention the Target Brand name ("{brand_name}") or any of its aliases in the prompts. The purpose of GEO tracking is to discover whether AI engines organically cite or recommend "{brand_name}" in response to unbiased consumer queries. Mentioning the brand directly ruins this tracking.
+   NEVER mention the Target Brand name ("{brand_name}") or any of its aliases in the prompts. The purpose of GEO tracking is to discover whether AI engines organically cite or recommend "{brand_name}" when answering unbiased consumer queries. Mentioning the brand directly ruins this tracking.
 
-FIVE EXAMPLES OF WHAT PROMPTS SHOULD NOT BE (AND WHY):
-- BAD EXAMPLE 1 (Direct Brand Mention / Biased Leading Question):
-  "Why is [Target Brand] better than other options for daily running?"
-  Why it fails: It directly names the target brand. Prompts must be unbiased discovery questions so the AI engine organically chooses which brands to recommend.
-- BAD EXAMPLE 2 (Academic Encyclopedia / History / Manufacturing Trivia):
-  "What is the thermodynamic process used to vulcanize rubber in shoe soles?" or "How was this commodity historically traded?"
-  Why it fails: Real shoppers do not ask textbook theory questions when making buying decisions. These yield history or science lessons, not commercial brand recommendations.
-- BAD EXAMPLE 3 (Robotic SEO Keyword-Stuffing / Affiliate Headline):
-  "best budget wireless earbuds under 2000 india top 10 specs battery review 2026"
-  Why it fails: Real humans typing to AI assistants ask conversational, coherent questions, not robotic keyword strings or affiliate blog post titles.
-- BAD EXAMPLE 4 (Overly Vague / Zero-Context Keyword):
-  "shoes" or "best laptops" or "good butter"
-  Why it fails: Lacks the context, criteria, or constraints needed for an AI engine to provide a nuanced, comparative brand recommendation.
-- BAD EXAMPLE 5 (Absurd / Non-Commercial Hypothetical):
-  "Can I wear marathon running sneakers while deep sea scuba diving?"
-  Why it fails: Real shoppers never ask absurd edge cases when purchasing products.
+4. EXAMPLES OF POOR PROMPTS TO AVOID:
+   - "Why is [Target Brand] better than other options?" (Directly names target brand - strictly forbidden)
+   - "Good all-in-one computers for home that fit under a certain budget" (Unnatural placeholder - use real number like "under 60,000" or omit budget)
+   - "What are the best laptops for graphic design that won't break the bank" (Cliché idiom - say "best laptops for graphic design" or "best laptops for graphic design under 70000")
+   - "How do the battery lives of different laptops compare for heavy usage?" (Formal textbook survey question - say "laptops with best battery life for heavy work and coding")
 
-DIVERSE HUMAN INTENT ANGLES (Ensure wide variety across the {count} variants):
-- Practical Use-Case & Scenario Fit (e.g. best for beginners, commuters, intense daily use, specific environmental conditions)
-- Quality, Durability & Build Standards (e.g. materials, longevity, reliability, craftsmanship)
-- Value for Money & Price-to-Performance (e.g. best affordable choices, or whether premium tiers justify the extra cost)
-- Feature & Technology Trade-offs (e.g. comparing product attributes or formats within the deduced category)
-- Reputation & Consumer Trust (e.g. which brands are most reliable or best reviewed by long-term users)
+5. DIVERSITY:
+   Ensure the {count} prompts cover distinct, realistic angles across the brand's product ecosystem (e.g. high-performance/gaming, portability/battery life, office/coding durability, creative/editing work, budget-conscious tiers with concrete price limits).
 
-Generate exactly {count} distinct, creative prompt variants that a real human would ask. Every single variant must explore a different angle or consumer need."""
+Generate exactly {count} distinct prompt variants that a real human would ask."""
 
 
 def generate_prompt_variants(
