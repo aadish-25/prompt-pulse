@@ -83,3 +83,17 @@ class BatchOut(BaseModel):
     completed_runs: int
     failed_runs: int
     model_config = {"from_attributes": True}
+
+
+class SummaryOut(BaseModel):
+    total_runs: int
+    mentioned_count: int
+    visibility_pct: float
+    sentiment_breakdown: dict[str, int]
+    top_competitors: list[dict]
+
+
+class DomainStatsOut(BaseModel):
+    domain: str
+    retrieved: int
+    cited: int
