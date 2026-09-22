@@ -1,30 +1,44 @@
 import time
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query
 from sqlalchemy.orm import Session
 from app.db import SessionLocal, get_db
 from app import models, schemas
+from app.config import MODEL, SUPPORTED_MODELS
 from app.services.runner import execute_single_execution, execute_batch
 
 router = APIRouter()
 
 
+@router.get("/models", response_model=schemas.SupportedModelsOut)
+def get_supported_models():
+    """Returns the pool of supported AI models for the frontend dropdown."""
+    return schemas.SupportedModelsOut(
+        default_model=MODEL,
+        supported_models=SUPPORTED_MODELS,
+    )
+
+
 @router.post("/prompts/{prompt_id}/run-once", response_model=schemas.PromptExecutionOut)
-def run_once(prompt_id: int, db: Session = Depends(get_db)):
+def run_once(
+    prompt_id: int,
+    model: str | None = Query(None, description="Optional model override"),
+    db: Session = Depends(get_db),
+):
     prompt = db.get(models.Prompt, prompt_id)
     if not prompt:
         raise HTTPException(404, "Prompt not found")
 
     project = db.get(models.Project, prompt.project_id)
-    return execute_single_execution(db, prompt, project)
+    return execute_single_execution(db, prompt, project, model=model)
 
 
-def _run_batch_background(batch_id: int, project_id: int, rounds: int):
+def _run_batch_background(
+    batch_id: int, project_id: int, rounds: int, model: str | None
+):
     db = SessionLocal()  # background tasks need their own session, not the request's
     try:
-        execute_batch(db, batch_id, project_id, rounds)
-    except Exception as e:
-        # something crashed outside of a single execution (e.g. DB unreachable) —
-        # mark the batch failed so it doesn't stay stuck at "running" forever
+        execute_batch(db, batch_id, project_id, rounds, model=model)
+    except Exception:
         try:
             batch = db.get(models.TrackingBatch, batch_id)
             if batch:
@@ -60,7 +74,9 @@ def start_batch(
     db.commit()
     db.refresh(batch)
 
-    background_tasks.add_task(_run_batch_background, batch.id, project_id, body.rounds)
+    background_tasks.add_task(
+        _run_batch_background, batch.id, project_id, body.rounds, body.model
+    )
     return batch
 
 
