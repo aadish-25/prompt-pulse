@@ -22,3 +22,7 @@ frontend/.next/
 
 # Personal scratchpads
 todo.txt
+
+
+.agents
+skills-lock.json
