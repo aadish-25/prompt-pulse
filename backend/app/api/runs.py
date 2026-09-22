@@ -3,20 +3,19 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from app.db import SessionLocal, get_db
 from app import models, schemas
-from app.services.llm import run_prompt
-from app.services.runner import execute_single_run, execute_batch
+from app.services.runner import execute_single_execution, execute_batch
 
 router = APIRouter()
 
 
-@router.post("/prompts/{prompt_id}/run-once", response_model=schemas.RunOut)
+@router.post("/prompts/{prompt_id}/run-once", response_model=schemas.PromptExecutionOut)
 def run_once(prompt_id: int, db: Session = Depends(get_db)):
     prompt = db.get(models.Prompt, prompt_id)
     if not prompt:
         raise HTTPException(404, "Prompt not found")
 
     project = db.get(models.Project, prompt.project_id)
-    return execute_single_run(db, prompt, project)
+    return execute_single_execution(db, prompt, project)
 
 
 def _run_batch_background(batch_id: int, project_id: int, rounds: int):
@@ -24,10 +23,10 @@ def _run_batch_background(batch_id: int, project_id: int, rounds: int):
     try:
         execute_batch(db, batch_id, project_id, rounds)
     except Exception as e:
-        # something crashed outside of a single run (e.g. DB unreachable) —
+        # something crashed outside of a single execution (e.g. DB unreachable) —
         # mark the batch failed so it doesn't stay stuck at "running" forever
         try:
-            batch = db.get(models.RunBatch, batch_id)
+            batch = db.get(models.TrackingBatch, batch_id)
             if batch:
                 batch.status = "failed"
                 db.commit()
@@ -37,10 +36,10 @@ def _run_batch_background(batch_id: int, project_id: int, rounds: int):
         db.close()
 
 
-@router.post("/projects/{project_id}/runs", response_model=schemas.BatchOut)
+@router.post("/projects/{project_id}/runs", response_model=schemas.TrackingBatchOut)
 def start_batch(
     project_id: int,
-    body: schemas.BatchCreate,
+    body: schemas.TrackingBatchCreate,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
@@ -54,7 +53,7 @@ def start_batch(
     if prompt_count == 0:
         raise HTTPException(400, "Project has no active prompts")
 
-    batch = models.RunBatch(
+    batch = models.TrackingBatch(
         project_id=project_id, rounds=body.rounds, total_runs=prompt_count * body.rounds
     )
     db.add(batch)
@@ -65,9 +64,9 @@ def start_batch(
     return batch
 
 
-@router.get("/batches/{batch_id}", response_model=schemas.BatchOut)
+@router.get("/batches/{batch_id}", response_model=schemas.TrackingBatchOut)
 def get_batch(batch_id: int, db: Session = Depends(get_db)):
-    batch = db.get(models.RunBatch, batch_id)
+    batch = db.get(models.TrackingBatch, batch_id)
     if not batch:
         raise HTTPException(404, "Batch not found")
     return batch

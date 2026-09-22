@@ -6,37 +6,37 @@ from app import models, schemas
 router = APIRouter()
 
 
-@router.get("/batches/{batch_id}/runs", response_model=list[schemas.RunOut])
+@router.get("/batches/{batch_id}/runs", response_model=list[schemas.PromptExecutionOut])
 def list_batch_runs(batch_id: int, db: Session = Depends(get_db)):
-    batch = db.get(models.RunBatch, batch_id)
+    batch = db.get(models.TrackingBatch, batch_id)
     if not batch:
         raise HTTPException(404, "Batch not found")
-    return db.query(models.Run).filter_by(batch_id=batch_id).all()
+    return db.query(models.PromptExecution).filter_by(batch_id=batch_id).all()
 
 
-@router.get("/projects/{project_id}/results", response_model=list[schemas.RunOut])
+@router.get("/projects/{project_id}/results", response_model=list[schemas.PromptExecutionOut])
 def project_results(
     project_id: int, round: int | None = Query(None), db: Session = Depends(get_db)
 ):
     q = (
-        db.query(models.Run)
+        db.query(models.PromptExecution)
         .join(models.Prompt)
         .filter(models.Prompt.project_id == project_id)
     )
     if round is not None:
-        q = q.filter(models.Run.round == round)
+        q = q.filter(models.PromptExecution.round == round)
     return q.all()
 
 
 @router.get("/projects/{project_id}/summary", response_model=schemas.SummaryOut)
 def project_summary(project_id: int, db: Session = Depends(get_db)):
-    runs = (
-        db.query(models.Run)
+    executions = (
+        db.query(models.PromptExecution)
         .join(models.Prompt)
-        .filter(models.Prompt.project_id == project_id, models.Run.status == "done")
+        .filter(models.Prompt.project_id == project_id, models.PromptExecution.status == "done")
         .all()
     )
-    total = len(runs)
+    total = len(executions)
     if total == 0:
         return schemas.SummaryOut(
             total_runs=0,
@@ -46,16 +46,16 @@ def project_summary(project_id: int, db: Session = Depends(get_db)):
             top_competitors=[],
         )
 
-    mentioned = [r for r in runs if r.target_mentions]
+    mentioned = [e for e in executions if e.brand_mentions]
     sentiments: dict[str, int] = {}
     competitor_counts: dict[str, int] = {}
 
-    for r in runs:
-        if r.analysis:
-            sentiments[r.analysis.target_sentiment] = (
-                sentiments.get(r.analysis.target_sentiment, 0) + 1
+    for e in executions:
+        if e.analysis:
+            sentiments[e.analysis.target_sentiment] = (
+                sentiments.get(e.analysis.target_sentiment, 0) + 1
             )
-            for c in r.analysis.other_brands:
+            for c in e.analysis.other_brands:
                 competitor_counts[c] = competitor_counts.get(c, 0) + 1
 
     top_competitors = sorted(competitor_counts.items(), key=lambda x: -x[1])[:10]
@@ -74,8 +74,8 @@ def project_summary(project_id: int, db: Session = Depends(get_db)):
 )
 def project_citations(project_id: int, db: Session = Depends(get_db)):
     sources = (
-        db.query(models.RunSource)
-        .join(models.Run)
+        db.query(models.WebSearchResult)
+        .join(models.PromptExecution)
         .join(models.Prompt)
         .filter(models.Prompt.project_id == project_id)
         .all()
