@@ -1,0 +1,93 @@
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
+from app.db import get_db
+from app import models, schemas
+
+router = APIRouter()
+
+
+@router.get("/batches/{batch_id}/runs", response_model=list[schemas.RunOut])
+def list_batch_runs(batch_id: int, db: Session = Depends(get_db)):
+    batch = db.get(models.RunBatch, batch_id)
+    if not batch:
+        raise HTTPException(404, "Batch not found")
+    return db.query(models.Run).filter_by(batch_id=batch_id).all()
+
+
+@router.get("/projects/{project_id}/results", response_model=list[schemas.RunOut])
+def project_results(
+    project_id: int, round: int | None = Query(None), db: Session = Depends(get_db)
+):
+    q = (
+        db.query(models.Run)
+        .join(models.Prompt)
+        .filter(models.Prompt.project_id == project_id)
+    )
+    if round is not None:
+        q = q.filter(models.Run.round == round)
+    return q.all()
+
+
+@router.get("/projects/{project_id}/summary", response_model=schemas.SummaryOut)
+def project_summary(project_id: int, db: Session = Depends(get_db)):
+    runs = (
+        db.query(models.Run)
+        .join(models.Prompt)
+        .filter(models.Prompt.project_id == project_id, models.Run.status == "done")
+        .all()
+    )
+    total = len(runs)
+    if total == 0:
+        return schemas.SummaryOut(
+            total_runs=0,
+            mentioned_count=0,
+            visibility_pct=0.0,
+            sentiment_breakdown={},
+            top_competitors=[],
+        )
+
+    mentioned = [r for r in runs if r.target_mentions]
+    sentiments: dict[str, int] = {}
+    competitor_counts: dict[str, int] = {}
+
+    for r in runs:
+        if r.analysis:
+            sentiments[r.analysis.target_sentiment] = (
+                sentiments.get(r.analysis.target_sentiment, 0) + 1
+            )
+            for c in r.analysis.other_brands:
+                competitor_counts[c] = competitor_counts.get(c, 0) + 1
+
+    top_competitors = sorted(competitor_counts.items(), key=lambda x: -x[1])[:10]
+
+    return schemas.SummaryOut(
+        total_runs=total,
+        mentioned_count=len(mentioned),
+        visibility_pct=round(len(mentioned) / total * 100, 1),
+        sentiment_breakdown=sentiments,
+        top_competitors=[{"brand": b, "count": c} for b, c in top_competitors],
+    )
+
+
+@router.get(
+    "/projects/{project_id}/citations", response_model=list[schemas.DomainStatsOut]
+)
+def project_citations(project_id: int, db: Session = Depends(get_db)):
+    sources = (
+        db.query(models.RunSource)
+        .join(models.Run)
+        .join(models.Prompt)
+        .filter(models.Prompt.project_id == project_id)
+        .all()
+    )
+    domain_stats: dict[str, dict] = {}
+    for s in sources:
+        entry = domain_stats.setdefault(s.domain, {"retrieved": 0, "cited": 0})
+        entry["retrieved"] += 1
+        if s.cited:
+            entry["cited"] += 1
+
+    return [
+        schemas.DomainStatsOut(domain=d, retrieved=v["retrieved"], cited=v["cited"])
+        for d, v in sorted(domain_stats.items(), key=lambda x: -x[1]["cited"])
+    ]
