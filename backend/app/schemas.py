@@ -70,3 +70,16 @@ class AnalysisOut(BaseModel):
     target_sentiment: str
     target_remark: str
     model_config = {"from_attributes": True}
+
+
+class BatchCreate(BaseModel):
+    rounds: int = 3
+
+
+class BatchOut(BaseModel):
+    id: int
+    status: str
+    total_runs: int
+    completed_runs: int
+    failed_runs: int
+    model_config = {"from_attributes": True}
