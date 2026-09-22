@@ -159,7 +159,7 @@ export default function PromptCreator({
             value={customText}
             onChange={(e) => setCustomText(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleAddCustom()}
-            placeholder="Or type your own custom prompt here (e.g. Which butter brand is best for everyday cooking in India?)"
+            placeholder={`Or type your own custom prompt (e.g. realistic buyer question for ${brandName} market)...`}
             className="flex-1 bg-surface-900 border border-surface-border rounded-lg px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none transition-colors"
           />
           <button

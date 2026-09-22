@@ -40,14 +40,14 @@ class PromptVariantOut(BaseModel):
 
 
 class VariantGenerateRequest(BaseModel):
-    seed_topic: str = "core products and consumer preferences"
-    count: int = Field(default=5, ge=1, le=10)
+    count: int = Field(default=10, ge=1, le=10)
+    seed_topic: str | None = None
 
 
 class VariantGenerateResponse(BaseModel):
     brand_name: str
-    seed_topic: str
     variants: list[PromptVariantOut]
+    seed_topic: str | None = None
 
 
 class SearchQueryOut(BaseModel):
