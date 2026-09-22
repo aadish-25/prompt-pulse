@@ -26,3 +26,4 @@ todo.txt
 
 .agents
 skills-lock.json
+.pytest_cache
