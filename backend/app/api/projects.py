@@ -92,6 +92,25 @@ def update_prompt(
     return prompt
 
 
+@router.delete("/prompts/{prompt_id}", status_code=204)
+def delete_prompt(prompt_id: int, db: Session = Depends(get_db)):
+    prompt = db.get(models.Prompt, prompt_id)
+    if not prompt:
+        raise HTTPException(404, "Prompt not found")
+
+    executions = db.query(models.PromptExecution).filter_by(prompt_id=prompt_id).all()
+    for ex in executions:
+        db.query(models.SearchQuery).filter_by(execution_id=ex.id).delete()
+        db.query(models.WebSearchResult).filter_by(execution_id=ex.id).delete()
+        db.query(models.BrandMention).filter_by(execution_id=ex.id).delete()
+        db.query(models.ExecutionAnalysis).filter_by(execution_id=ex.id).delete()
+        db.delete(ex)
+
+    db.delete(prompt)
+    db.commit()
+    return None
+
+
 @router.post(
     "/projects/{project_id}/prompts/generate-variants",
     response_model=schemas.VariantGenerateResponse,

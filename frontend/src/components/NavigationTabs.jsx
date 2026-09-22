@@ -11,11 +11,6 @@ import { ListChecks, LayoutList, Network, Sparkles } from 'lucide-react';
 export default function NavigationTabs({ activeTab, onTabChange, promptsCount = 0 }) {
   const tabs = [
     { 
-      id: 'prompts', 
-      label: promptsCount > 0 ? `Tracked Prompts (${promptsCount})` : 'Tracked Prompts', 
-      icon: ListChecks 
-    },
-    { 
       id: 'explorer', 
       label: 'AI Answers & Grounding', 
       icon: LayoutList 
@@ -24,6 +19,11 @@ export default function NavigationTabs({ activeTab, onTabChange, promptsCount = 
       id: 'citations', 
       label: 'Citation & Competitor Audit', 
       icon: Network 
+    },
+    { 
+      id: 'prompts', 
+      label: promptsCount > 0 ? `Tracked Prompts (${promptsCount})` : 'Tracked Prompts', 
+      icon: ListChecks 
     },
     { 
       id: 'generator', 

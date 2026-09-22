@@ -17,6 +17,7 @@ import {
   fetchBatchRuns,
   fetchProjectPrompts,
   togglePromptActive,
+  deletePrompt,
   fetchSupportedModels,
   triggerBatchRun,
   generatePromptVariants,
@@ -31,7 +32,7 @@ import {
 export default function App() {
   // Navigation & View state
   const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard' | 'landing'
-  const [activeTab, setActiveTab] = useState('prompts'); // 'prompts' | 'explorer' | 'citations' | 'generator'
+  const [activeTab, setActiveTab] = useState('explorer'); // 'explorer' | 'citations' | 'prompts' | 'generator'
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [focusedPromptId, setFocusedPromptId] = useState(null);
 
@@ -131,6 +132,19 @@ export default function App() {
     }
   };
 
+  // Delete prompt from tracking queue
+  const handleDeletePrompt = async (promptId) => {
+    // Optimistic update
+    setPrompts(prev => prev.filter(p => p.id !== promptId));
+    try {
+      await deletePrompt(promptId);
+    } catch (err) {
+      console.error('Failed to delete prompt:', err);
+      // Reload on failure
+      await loadProjectData(activeProjectId);
+    }
+  };
+
   // Navigate to grounding deep-dive for a specific prompt
   const handleNavigateToGrounding = (run) => {
     if (run) {
@@ -168,7 +182,7 @@ export default function App() {
     }
   };
 
-  // Add prompts to project tracker and navigate to Section 1
+  // Add prompts to project tracker without navigating away
   const handleAddPrompts = async (promptsList) => {
     try {
       await addPromptsBulk(activeProjectId, promptsList);
@@ -177,8 +191,6 @@ export default function App() {
       if (updatedPrompts && updatedPrompts.length > 0) {
         setPrompts(updatedPrompts);
       }
-      // Immediately switch to Section 1: Tracked Prompts Queue so the user sees them!
-      setActiveTab('prompts');
     } catch (err) {
       console.error('Add prompts error:', err);
     }
@@ -231,20 +243,7 @@ export default function App() {
             promptsCount={prompts.length}
           />
 
-          {/* Section 1: Tracked Prompts Queue (All prompts serial number-wise) */}
-          {activeTab === 'prompts' && (
-            <TrackedPromptsQueue
-              prompts={prompts}
-              runs={runs}
-              onToggleActive={handleTogglePromptActive}
-              onNavigateToGrounding={handleNavigateToGrounding}
-              onNavigateToCreator={() => setActiveTab('generator')}
-              onRunBatch={handleRunBatch}
-              isRunningBatch={isRunningBatch}
-            />
-          )}
-
-          {/* Section 2: AI Answers & Grounding Deep-Dive */}
+          {/* Tab 1: AI Answers & Grounding Deep-Dive */}
           {activeTab === 'explorer' && (
             <PromptExplorer
               runs={runs}
@@ -252,7 +251,7 @@ export default function App() {
             />
           )}
 
-          {/* Section 3: Citation & Competitor Audit */}
+          {/* Tab 2: Citation & Competitor Audit */}
           {activeTab === 'citations' && (
             <CitationAudit
               summary={summary}
@@ -261,7 +260,21 @@ export default function App() {
             />
           )}
 
-          {/* Section 4: AI Prompt Creator */}
+          {/* Tab 3: Tracked Prompts Queue (All prompts serial number-wise) */}
+          {activeTab === 'prompts' && (
+            <TrackedPromptsQueue
+              prompts={prompts}
+              runs={runs}
+              onToggleActive={handleTogglePromptActive}
+              onDeletePrompt={handleDeletePrompt}
+              onNavigateToGrounding={handleNavigateToGrounding}
+              onNavigateToCreator={() => setActiveTab('generator')}
+              onRunBatch={handleRunBatch}
+              isRunningBatch={isRunningBatch}
+            />
+          )}
+
+          {/* Tab 4: AI Prompt Creator */}
           {activeTab === 'generator' && (
             <PromptCreator
               project={activeProject}

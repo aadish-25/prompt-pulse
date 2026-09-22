@@ -28,9 +28,9 @@ export default function PromptExplorer({ runs = [], focusedPromptId = null }) {
   const citedSources = allWebResults.filter(s => s.cited);
   const displayedSources = sourceFilter === 'cited' ? citedSources : allWebResults;
 
-  const targetMentionsCount = activeRun?.brand_mentions?.filter(m => m.is_target || m.brand_name === 'Amul')?.length || 4;
+  const targetMentionsCount = activeRun?.brand_mentions?.length ?? 0;
   const targetCited = allWebResults.some(s => s.domain.includes('amul.com') && s.cited) ? 1 : 0;
-  const totalCitations = citedSources.length || 5;
+  const totalCitations = citedSources.length;
 
   const topCompetitorName = activeRun?.analysis?.other_brands?.[0] || 'Mother Dairy';
   const sentiment = activeRun?.analysis?.target_sentiment || 'positive';
@@ -171,7 +171,7 @@ export default function PromptExplorer({ runs = [], focusedPromptId = null }) {
         </div>
 
         {/* Search Queries Triggered */}
-        <div className="space-y-1.5">
+        <div className="pt-4 border-t border-surface-border space-y-2">
           <span className="text-[11px] font-semibold text-slate-300 uppercase tracking-wider block">
             Agent Web Search Queries ({activeRun?.search_queries?.length || 3} Executed)
           </span>
@@ -189,7 +189,7 @@ export default function PromptExplorer({ runs = [], focusedPromptId = null }) {
         </div>
 
         {/* Full AI Generated Answer Box */}
-        <div className="space-y-1.5">
+        <div className="pt-4 border-t border-surface-border space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold text-slate-300 uppercase tracking-wider">
               Full AI Generated Response
@@ -221,7 +221,7 @@ export default function PromptExplorer({ runs = [], focusedPromptId = null }) {
         </div>
 
         {/* Grounding Sources Table with Accurate Ref Matching */}
-        <div className="space-y-2">
+        <div className="pt-4 border-t border-surface-border space-y-2.5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
               <span className="text-[11px] font-semibold text-slate-300 uppercase tracking-wider block">
@@ -310,19 +310,29 @@ export default function PromptExplorer({ runs = [], focusedPromptId = null }) {
         </div>
 
         {/* Target Brand Mentions Extracted */}
-        <div className="space-y-1.5">
-          <span className="text-[11px] font-semibold text-slate-300 uppercase tracking-wider block">
-            Target Brand Mentions Extracted (Amul)
-          </span>
-          <div className="space-y-1 text-xs font-sans">
-            <div className="p-2 rounded bg-surface-900 border border-surface-border text-slate-300">
-              <span className="text-emerald-400 font-bold mr-1.5">[Amul]</span>
-              "...particularly <strong>Amul</strong> and President Butter."
-            </div>
-            <div className="p-2 rounded bg-surface-900 border border-surface-border text-slate-300">
-              <span className="text-emerald-400 font-bold mr-1.5">[Amul]</span>
-              "1. <strong>Amul Butter:</strong> Amul is a household name in India, known for its rich flavor and creamy texture."
-            </div>
+        <div className="pt-4 border-t border-surface-border space-y-2.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold text-slate-300 uppercase tracking-wider block">
+              Target Brand Mentions Extracted
+            </span>
+            <span className="text-xs px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/20">
+              {targetMentionsCount} {targetMentionsCount === 1 ? 'Mention' : 'Mentions'}
+            </span>
+          </div>
+
+          <div className="space-y-1.5 text-xs font-sans">
+            {activeRun?.brand_mentions && activeRun.brand_mentions.length > 0 ? (
+              activeRun.brand_mentions.map((m, idx) => (
+                <div key={idx} className="p-2.5 rounded-lg bg-surface-900 border border-surface-border text-slate-300 leading-relaxed">
+                  <span className="text-emerald-400 font-bold mr-2">[{m.matched_as || 'Amul'}]</span>
+                  <span>"{m.sentence}"</span>
+                </div>
+              ))
+            ) : (
+              <div className="p-3 rounded-lg bg-surface-900 border border-surface-border text-slate-400 italic text-xs">
+                No explicit target brand mentions detected in this execution.
+              </div>
+            )}
           </div>
         </div>
       </div>
