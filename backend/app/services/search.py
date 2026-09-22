@@ -18,7 +18,7 @@ class SearchResult(BaseModel):
     wait=wait_exponential(multiplier=1, min=2, max=8),
     reraise=True,
 )
-def search(query: str, max_results: int = 5) -> list[SearchResult]:
+def search(query: str, max_results: int = 10) -> list[SearchResult]:
     results = client.search(
         query=query, max_results=max_results, search_depth="advanced"
     )["results"]
@@ -26,7 +26,7 @@ def search(query: str, max_results: int = 5) -> list[SearchResult]:
         SearchResult(
             title=r["title"],
             url=r["url"],
-            content=r["content"][:450] if r.get("content") else "",
+            content=r["content"],
             raw_response=r,
         )
         for r in results

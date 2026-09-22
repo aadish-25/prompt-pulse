@@ -102,7 +102,7 @@ def run_prompt(prompt: str, model: str | None = None) -> PromptResult:
                     )
                 )
                 number_of[url] = len(sources)
-            lines.append(f"[{number_of[url]}] {r.title}\n{r.content}")
+            lines.append(f"[{number_of[url]}] {r.title}\nURL: {url}\n{r.content}")
         return "\n\n".join(lines) or "No results."
 
     answer = ""
