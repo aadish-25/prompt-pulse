@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle, Search, Smile, Check, ExternalLink, AlertCircle } from 'lucide-react';
+import { CheckCircle, Search, Smile, Check, ExternalLink, AlertCircle, Trash2 } from 'lucide-react';
+import ConfirmDialog from './ConfirmDialog';
 
 /**
  * PromptExplorer (AI Answers & Grounding) - Deep-dive execution inspector.
  * Accurately aligns citation numbers between the AI answer and the sources table.
  */
-export default function PromptExplorer({ runs = [], focusedPromptId = null, activeProject = null }) {
+export default function PromptExplorer({ runs = [], focusedPromptId = null, activeProject = null, onClearResults = null }) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [sourceFilter, setSourceFilter] = useState('cited'); // 'cited' | 'all'
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
 
   // If focusedPromptId changes, switch to that run
   useEffect(() => {
@@ -96,7 +99,19 @@ export default function PromptExplorer({ runs = [], focusedPromptId = null, acti
             <span className="font-bold text-white">Executed Test Prompts</span>
             <span className="text-slate-500 text-[11px] ml-1">({runs.length} Evaluated)</span>
           </div>
-          <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+          <div className="flex items-center gap-2 text-[11px] text-slate-400">
+            {runs.length > 0 && onClearResults && (
+              <button
+                type="button"
+                onClick={() => setShowClearConfirm(true)}
+                disabled={isClearing}
+                className="px-2 py-0.5 rounded text-[11px] font-semibold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-rose-500/20 flex items-center gap-1 transition-colors cursor-pointer"
+                title="Clear all executed test prompts"
+              >
+                <Trash2 className="w-3 h-3" />
+                <span>Clear All</span>
+              </button>
+            )}
             <span>Page 1 of 1</span>
             <button className="w-5 h-5 rounded flex items-center justify-center bg-surface-900 border border-surface-border text-slate-500 disabled:opacity-40" disabled>
               ‹
@@ -421,6 +436,26 @@ export default function PromptExplorer({ runs = [], focusedPromptId = null, acti
           </div>
         </div>
       </div>
+
+      {/* Clear All Confirmation Modal */}
+      <ConfirmDialog
+        isOpen={showClearConfirm}
+        title="Clear All Executed Test Prompts?"
+        message="This will permanently delete all evaluated test prompt runs, grounding sources, and mention analytics for this project so you can start clean."
+        confirmText="Clear All Results"
+        cancelText="Cancel"
+        isDanger={true}
+        onConfirm={async () => {
+          setIsClearing(true);
+          try {
+            if (onClearResults) await onClearResults();
+          } finally {
+            setIsClearing(false);
+            setShowClearConfirm(false);
+          }
+        }}
+        onCancel={() => setShowClearConfirm(false)}
+      />
     </section>
   );
 }

@@ -26,14 +26,10 @@ class ExtractionResult(BaseModel):
 
 
 EXTRACTION_SYSTEM_PROMPT = (
-    "You analyze an AI-generated answer about products for one specific "
-    "brand: {target_brand}.\n\n"
-    "1. List every OTHER distinct brand name mentioned (exclude {target_brand} and common misspellings of it).\n"
-    "2. Judge the sentiment specifically toward {target_brand}: "
-    "'positive', 'neutral', 'negative', or 'not_mentioned' if it doesn't appear at all.\n"
-    "3. Give a short one-sentence remark explaining that sentiment judgment, "
-    "quoting or paraphrasing the relevant part of the answer. If not mentioned, "
-    "say so briefly."
+    "Analyze this product answer for brand {target_brand}.\n"
+    "1. List all OTHER competitor brands mentioned (exclude {target_brand} and typos of it).\n"
+    "2. Judge sentiment toward {target_brand}: positive, neutral, negative, or not_mentioned.\n"
+    "3. One concise sentence remark explaining the judgment."
 )
 
 

@@ -80,6 +80,21 @@ export async function fetchProjectResults(projectId = 4) {
 }
 
 /**
+ * Clear all execution runs and test results for a project.
+ */
+export async function clearProjectResults(projectId) {
+    try {
+        const res = await fetch(`${API_BASE}/projects/${projectId}/results`, {
+            method: "DELETE",
+        });
+        return res.ok;
+    } catch (e) {
+        console.warn("Failed to clear project results", e);
+        return false;
+    }
+}
+
+/**
  * Fetch batch execution runs (maps to project results for seamless compatibility).
  */
 export async function fetchBatchRuns(projectIdOrBatchId = 4) {
