@@ -1,10 +1,10 @@
 import time
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
-from app.db import get_db
+from app.db import SessionLocal, get_db
 from app import models, schemas
 from app.services.llm import run_prompt
-from app.services.extraction import find_target_mentions, analyze_answer
+from app.services.runner import execute_single_run, execute_batch
 
 router = APIRouter()
 
@@ -16,42 +16,58 @@ def run_once(prompt_id: int, db: Session = Depends(get_db)):
         raise HTTPException(404, "Prompt not found")
 
     project = db.get(models.Project, prompt.project_id)
+    return execute_single_run(db, prompt, project)
 
-    run = models.Run(prompt_id=prompt_id, status="running")
-    db.add(run)
-    db.commit()
 
-    start = time.time()
-    result = run_prompt(prompt.text)
+def _run_batch_background(batch_id: int, project_id: int, rounds: int):
+    db = SessionLocal()  # background tasks need their own session, not the request's
+    try:
+        execute_batch(db, batch_id, project_id, rounds)
+    except Exception as e:
+        # something crashed outside of a single run (e.g. DB unreachable) —
+        # mark the batch failed so it doesn't stay stuck at "running" forever
+        try:
+            batch = db.get(models.RunBatch, batch_id)
+            if batch:
+                batch.status = "failed"
+                db.commit()
+        except Exception:
+            pass
+    finally:
+        db.close()
 
-    run.raw_answer = result.answer
-    run.model = result.model
-    run.duration_ms = int((time.time() - start) * 1000)
-    run.status = "done"
-    run.queries = [models.RunQuery(query=q) for q in result.queries]
-    run.sources = [
-        models.RunSource(
-            url=s.url,
-            domain=s.domain,
-            title=s.title,
-            snippet=s.content,
-            cited=s.cited,
-        )
-        for s in result.sources
-    ]
 
-    mentions = find_target_mentions(result.answer, project.brand_name, project.aliases)
-    analysis = analyze_answer(result.answer, project.brand_name)
+@router.post("/projects/{project_id}/runs", response_model=schemas.BatchOut)
+def start_batch(
+    project_id: int,
+    body: schemas.BatchCreate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    project = db.get(models.Project, project_id)
+    if not project:
+        raise HTTPException(404, "Project not found")
 
-    run.target_mentions = [
-        models.Mention(sentence=m.sentence, matched_as=m.matched_as) for m in mentions
-    ]
-    run.analysis = models.Analysis(
-        other_brands=analysis.other_brands,
-        target_sentiment=analysis.target_sentiment,
-        target_remark=analysis.target_remark,
+    prompt_count = (
+        db.query(models.Prompt).filter_by(project_id=project_id, active=True).count()
     )
+    if prompt_count == 0:
+        raise HTTPException(400, "Project has no active prompts")
 
+    batch = models.RunBatch(
+        project_id=project_id, rounds=body.rounds, total_runs=prompt_count * body.rounds
+    )
+    db.add(batch)
     db.commit()
-    db.refresh(run)
-    return run
+    db.refresh(batch)
+
+    background_tasks.add_task(_run_batch_background, batch.id, project_id, body.rounds)
+    return batch
+
+
+@router.get("/batches/{batch_id}", response_model=schemas.BatchOut)
+def get_batch(batch_id: int, db: Session = Depends(get_db)):
+    batch = db.get(models.RunBatch, batch_id)
+    if not batch:
+        raise HTTPException(404, "Batch not found")
+    return batch
