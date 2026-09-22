@@ -24,6 +24,8 @@ MAX_STEPS = MAX_SEARCH_STEPS + 1
     reraise=True,
 )
 def _chat_completion_with_retry(**kwargs):
+    if "max_tokens" not in kwargs:
+        kwargs["max_tokens"] = 1500
     return client.chat.completions.create(**kwargs)
 
 
@@ -138,11 +140,13 @@ def run_prompt(prompt: str, model: str | None = None) -> PromptResult:
                     "using only the sources you already have.",
                 }
             )
+        step_max_tokens = 1800 if last else 800
         response = _chat_completion_with_retry(
             model=active_model,
             messages=messages,
             tools=TOOLS,
             tool_choice=tool_choice,
+            max_tokens=step_max_tokens,
         )
         msg = response.choices[0].message
 

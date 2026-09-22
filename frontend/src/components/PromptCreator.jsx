@@ -121,66 +121,64 @@ export default function PromptCreator({
       )}
 
       {/* Action Bar */}
-      <div className="bg-surface-850 border border-surface-border rounded-xl overflow-hidden">
-        {/* Title block */}
-        <div className="px-5 pt-4 pb-3.5 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
-            <Sparkles className="w-4 h-4" />
-          </div>
-          <div>
-            <h3 className="text-sm font-bold text-white leading-tight">
-              Brand-Aware Prompt Creator
-              {brandName !== 'Target Brand' && <span className="text-blue-400"> for {brandName}</span>}
-            </h3>
-            <p className="text-[11px] text-slate-500 mt-0.5">AI-powered consumer search query generator</p>
-          </div>
-        </div>
-
-        {/* Only horizontal divider — equal spacing on both sides */}
-        <div className="border-t border-surface-border px-5 pt-3.5 pb-4 space-y-3.5">
-          {/* Description + Model badge + Generate button on same row */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Deduces {brandName}'s product category and competitive landscape to generate realistic consumer search questions.
-            </p>
-            <div className="flex items-center gap-2 shrink-0">
-              {selectedModel && (
-                <span className="text-[11px] text-slate-400 font-mono bg-surface-900 border border-surface-border px-2.5 py-1.5 rounded-lg hidden md:inline-block" title="Active Model">
-                  {selectedModel}
-                </span>
-              )}
-              <button
-                type="button"
-                onClick={handleGenerate}
-                disabled={isGenerating || !project}
-                className="shrink-0 whitespace-nowrap bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-semibold text-xs py-2.5 px-4 rounded-lg flex items-center gap-2 shadow-sm transition-all shadow-blue-600/20 active:scale-95 cursor-pointer"
-              >
-                {isGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                <span>{isGenerating ? 'Generating...' : 'Generate 10 New Prompts'}</span>
-              </button>
+      <div className="bg-surface-850 border border-surface-border rounded-xl p-5 space-y-3">
+        {/* Top Header Row: Title & Tagline on Left, Model Badge & Generate Button on Right */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
+              <Sparkles className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-white leading-tight">
+                Brand-Aware Prompt Creator
+                {brandName !== 'Target Brand' && <span className="text-blue-400"> for {brandName}</span>}
+              </h3>
+              <p className="text-[11px] text-slate-500 mt-0.5">AI-powered consumer search query generator</p>
             </div>
           </div>
 
-          {/* Custom prompt row — no extra divider */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            <input
-              type="text"
-              value={customText}
-              onChange={(e) => setCustomText(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAddCustom()}
-              placeholder={`Type your own custom prompt for ${brandName}...`}
-              className="flex-1 bg-surface-900 border border-surface-border rounded-lg px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none transition-colors"
-            />
+          <div className="flex items-center gap-2 shrink-0">
+            {selectedModel && (
+              <span className="text-[11px] text-slate-400 font-mono bg-surface-900 border border-surface-border px-2.5 py-1.5 rounded-lg hidden sm:inline-block" title="Active Model">
+                {selectedModel}
+              </span>
+            )}
             <button
               type="button"
-              onClick={handleAddCustom}
-              disabled={!customText.trim()}
-              className="shrink-0 whitespace-nowrap bg-surface-800 hover:bg-surface-700 disabled:opacity-40 text-slate-200 border border-surface-border px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              onClick={handleGenerate}
+              disabled={isGenerating || !project}
+              className="shrink-0 whitespace-nowrap bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-semibold text-xs py-2 px-3.5 rounded-lg flex items-center gap-2 shadow-sm transition-all shadow-blue-600/20 active:scale-95 cursor-pointer"
             >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Add Custom Prompt</span>
+              {isGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+              <span>{isGenerating ? 'Generating...' : 'Generate 10 New Prompts'}</span>
             </button>
           </div>
+        </div>
+
+        {/* Compact Description with subtle margin */}
+        <p className="text-xs text-slate-400 leading-relaxed pt-0.5">
+          Deduces {brandName}'s product category and competitive landscape to generate realistic consumer search questions.
+        </p>
+
+        {/* Custom prompt row */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 pt-2 border-t border-surface-border">
+          <input
+            type="text"
+            value={customText}
+            onChange={(e) => setCustomText(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleAddCustom()}
+            placeholder={`Type your own custom prompt for ${brandName}...`}
+            className="flex-1 bg-surface-900 border border-surface-border rounded-lg px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none transition-colors"
+          />
+          <button
+            type="button"
+            onClick={handleAddCustom}
+            disabled={!customText.trim()}
+            className="shrink-0 whitespace-nowrap bg-surface-800 hover:bg-surface-700 disabled:opacity-40 text-slate-200 border border-surface-border px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add Custom Prompt</span>
+          </button>
         </div>
       </div>
 
