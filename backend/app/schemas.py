@@ -40,7 +40,7 @@ class PromptVariantOut(BaseModel):
 
 
 class VariantGenerateRequest(BaseModel):
-    seed_topic: str
+    seed_topic: str = "core products and consumer preferences"
     count: int = Field(default=5, ge=1, le=10)
 
 

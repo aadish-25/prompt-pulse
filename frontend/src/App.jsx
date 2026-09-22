@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Header from './components/Header';
 import KpiCards from './components/KpiCards';
 import NavigationTabs from './components/NavigationTabs';
+import TrackedPromptsQueue from './components/TrackedPromptsQueue';
 import PromptExplorer from './components/PromptExplorer';
 import CitationAudit from './components/CitationAudit';
 import PromptCreator from './components/PromptCreator';
@@ -14,6 +15,8 @@ import {
   fetchProjectSummary,
   fetchProjectCitations,
   fetchBatchRuns,
+  fetchProjectPrompts,
+  togglePromptActive,
   fetchSupportedModels,
   triggerBatchRun,
   generatePromptVariants,
@@ -28,8 +31,9 @@ import {
 export default function App() {
   // Navigation & View state
   const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard' | 'landing'
-  const [activeTab, setActiveTab] = useState('explorer'); // 'explorer' | 'citations' | 'generator'
+  const [activeTab, setActiveTab] = useState('prompts'); // 'prompts' | 'explorer' | 'citations' | 'generator'
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [focusedPromptId, setFocusedPromptId] = useState(null);
 
   // Project state
   const [projects, setProjects] = useState(FALLBACK_PROJECTS);
@@ -37,6 +41,7 @@ export default function App() {
   const [activeProject, setActiveProject] = useState(FALLBACK_PROJECTS[0]);
 
   // Data state
+  const [prompts, setPrompts] = useState([]);
   const [summary, setSummary] = useState(FALLBACK_SUMMARY);
   const [citations, setCitations] = useState(FALLBACK_CITATIONS);
   const [runs, setRuns] = useState(FALLBACK_RUNS);
@@ -57,20 +62,22 @@ export default function App() {
   const [isGeneratingVariants, setIsGeneratingVariants] = useState(false);
   const [apiOnline, setApiOnline] = useState(true);
 
-  // Load project details and executions
+  // Load project details, prompts, and executions
   const loadProjectData = useCallback(async (projId) => {
     try {
-      const [projData, sumData, citData, runsData] = await Promise.all([
+      const [projData, sumData, citData, runsData, promptsData] = await Promise.all([
         fetchProject(projId),
         fetchProjectSummary(projId),
         fetchProjectCitations(projId),
-        fetchBatchRuns(projId)
+        fetchBatchRuns(projId),
+        fetchProjectPrompts(projId)
       ]);
 
       if (projData) setActiveProject(projData);
       if (sumData) setSummary(sumData);
       if (citData) setCitations(citData);
       if (runsData && runsData.length > 0) setRuns(runsData);
+      if (promptsData && promptsData.length > 0) setPrompts(promptsData);
     } catch (err) {
       console.warn('Error fetching project data, fallback retained:', err);
     }
@@ -113,13 +120,32 @@ export default function App() {
     await loadProjectData(proj.id);
   };
 
+  // Toggle prompt active/inactive
+  const handleTogglePromptActive = async (promptId, newActive) => {
+    // Optimistic update
+    setPrompts(prev => prev.map(p => p.id === promptId ? { ...p, active: newActive } : p));
+    try {
+      await togglePromptActive(promptId, newActive);
+    } catch (err) {
+      console.error('Failed to toggle prompt active state:', err);
+    }
+  };
+
+  // Navigate to grounding deep-dive for a specific prompt
+  const handleNavigateToGrounding = (run) => {
+    if (run) {
+      setFocusedPromptId(run.prompt_id || run.id);
+    }
+    setActiveTab('explorer');
+  };
+
   // Trigger batch execution
   const handleRunBatch = async () => {
     if (isRunningBatch) return;
     setIsRunningBatch(true);
     try {
       await triggerBatchRun(activeProjectId, selectedRounds, selectedModel);
-      // Refresh project summary and executions
+      // Refresh project data, executions, and prompts
       await loadProjectData(activeProjectId);
     } catch (err) {
       console.error('Batch run error:', err);
@@ -142,11 +168,17 @@ export default function App() {
     }
   };
 
-  // Add prompts to project tracker
+  // Add prompts to project tracker and navigate to Section 1
   const handleAddPrompts = async (promptsList) => {
     try {
       await addPromptsBulk(activeProjectId, promptsList);
-      await loadProjectData(activeProjectId);
+      // Refresh database prompts
+      const updatedPrompts = await fetchProjectPrompts(activeProjectId);
+      if (updatedPrompts && updatedPrompts.length > 0) {
+        setPrompts(updatedPrompts);
+      }
+      // Immediately switch to Section 1: Tracked Prompts Queue so the user sees them!
+      setActiveTab('prompts');
     } catch (err) {
       console.error('Add prompts error:', err);
     }
@@ -192,17 +224,35 @@ export default function App() {
           {/* Top 4 Diagnostic KPI Header Cards */}
           <KpiCards summary={summary} activeProject={activeProject} />
 
-          {/* Navigation Tabs */}
+          {/* Navigation Tabs (4 Sections) */}
           <NavigationTabs
             activeTab={activeTab}
             onTabChange={setActiveTab}
+            promptsCount={prompts.length}
           />
 
-          {/* Tab Views */}
-          {activeTab === 'explorer' && (
-            <PromptExplorer runs={runs} />
+          {/* Section 1: Tracked Prompts Queue (All prompts serial number-wise) */}
+          {activeTab === 'prompts' && (
+            <TrackedPromptsQueue
+              prompts={prompts}
+              runs={runs}
+              onToggleActive={handleTogglePromptActive}
+              onNavigateToGrounding={handleNavigateToGrounding}
+              onNavigateToCreator={() => setActiveTab('generator')}
+              onRunBatch={handleRunBatch}
+              isRunningBatch={isRunningBatch}
+            />
           )}
 
+          {/* Section 2: AI Answers & Grounding Deep-Dive */}
+          {activeTab === 'explorer' && (
+            <PromptExplorer
+              runs={runs}
+              focusedPromptId={focusedPromptId}
+            />
+          )}
+
+          {/* Section 3: Citation & Competitor Audit */}
           {activeTab === 'citations' && (
             <CitationAudit
               summary={summary}
@@ -211,6 +261,7 @@ export default function App() {
             />
           )}
 
+          {/* Section 4: AI Prompt Creator */}
           {activeTab === 'generator' && (
             <PromptCreator
               project={activeProject}

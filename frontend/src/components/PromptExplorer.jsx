@@ -1,8 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CheckCircle, Search, Smile } from 'lucide-react';
 
-export default function PromptExplorer({ runs = [] }) {
+/**
+ * PromptExplorer (AI Answers & Grounding) - Deep-dive execution inspector.
+ * Completely free of boxy font-mono, with clean proportional typography.
+ */
+export default function PromptExplorer({ runs = [], focusedPromptId = null }) {
   const [selectedIndex, setSelectedIndex] = useState(0);
+
+  // If focusedPromptId changes, switch to that run
+  useEffect(() => {
+    if (focusedPromptId != null && runs.length > 0) {
+      const idx = runs.findIndex(r => r.prompt_id === focusedPromptId || r.id === focusedPromptId);
+      if (idx !== -1) setSelectedIndex(idx);
+    }
+  }, [focusedPromptId, runs]);
 
   const activeRun = runs[selectedIndex] || runs[0];
   const targetMentionsCount = activeRun?.brand_mentions?.filter(m => m.is_target || m.brand_name === 'Amul')?.length || 4;
@@ -15,15 +27,15 @@ export default function PromptExplorer({ runs = [] }) {
 
   return (
     <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-      {/* Left Column: Tracked Prompts Stack (Top Pagination ONLY) */}
+      {/* Left Column: Tested Prompts Stack (Top Pagination ONLY) */}
       <div className="lg:col-span-5 bg-surface-850 border border-surface-border rounded-xl p-4 flex flex-col space-y-3">
         {/* Header & Quick Top Pagination */}
         <div className="flex items-center justify-between pb-2 border-b border-surface-border text-xs">
           <div>
-            <span className="font-bold text-white">Tracked Prompts</span>
-            <span className="text-slate-500 text-[11px] ml-1">({runs.length} Active)</span>
+            <span className="font-bold text-white">Executed Test Prompts</span>
+            <span className="text-slate-500 text-[11px] ml-1">({runs.length} Evaluated)</span>
           </div>
-          <div className="flex items-center gap-1.5 font-mono text-[11px] text-slate-400">
+          <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
             <span>Page 1 of 1</span>
             <button className="w-5 h-5 rounded flex items-center justify-center bg-surface-900 border border-surface-border text-slate-500 disabled:opacity-40" disabled>
               ‹
@@ -53,7 +65,7 @@ export default function PromptExplorer({ runs = [] }) {
                 }`}
               >
                 <div className="flex items-center justify-between text-xs mb-1">
-                  <span className={`font-bold font-mono text-[11px] px-2 py-0.5 rounded border ${
+                  <span className={`font-bold text-[11px] px-2 py-0.5 rounded border ${
                     isSelected
                       ? 'text-white bg-surface-900 border-surface-border'
                       : 'text-slate-300 bg-surface-800 border-surface-border'
@@ -67,7 +79,7 @@ export default function PromptExplorer({ runs = [] }) {
                 <h4 className={`text-xs font-semibold leading-snug ${isSelected ? 'text-white' : 'text-slate-200'}`}>
                   {run.prompt_text}
                 </h4>
-                <div className="flex items-center gap-3 mt-2 text-[11px] text-slate-400 font-mono">
+                <div className="flex items-center gap-3 mt-2 text-[11px] text-slate-400">
                   <span><strong className="text-slate-200">{mentionCount}</strong> {mentionCount === 1 ? 'mention' : 'mentions'}</span>
                   <span><strong className="text-slate-200">{citedCount}</strong> cited</span>
                   <span><strong className="text-slate-200">{durationSec}s</strong></span>
@@ -84,10 +96,10 @@ export default function PromptExplorer({ runs = [] }) {
         <div className="border-b border-surface-border pb-3.5 space-y-2.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-mono font-bold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2.5 py-1 rounded">
+              <span className="text-xs font-bold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2.5 py-1 rounded">
                 Prompt {selectedIndex + 1} Execution
               </span>
-              <span className="text-xs text-slate-400 font-mono">{activeRun?.model || 'openai/gpt-4o-mini'}</span>
+              <span className="text-xs text-slate-400">{activeRun?.model || 'openai/gpt-4o-mini'}</span>
             </div>
             <span className="text-xs px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-semibold flex items-center gap-1">
               <Smile className="w-3.5 h-3.5" />
@@ -99,38 +111,56 @@ export default function PromptExplorer({ runs = [] }) {
             "{activeRun?.prompt_text}"
           </h3>
 
-          {/* Approved 4-Box Mini-Strip */}
+          {/* Prompt Level 4-Stat Strip */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
-            {/* Box 1 */}
+            {/* Box 1: Target Mentions */}
             <div className="bg-surface-900 border border-surface-border rounded-lg p-3 min-w-0 flex flex-col justify-between">
-              <span className="text-slate-400 text-[10px] uppercase font-semibold tracking-wider truncate block">Target Mentions</span>
-              <span className="text-xl font-bold font-sans text-emerald-400 mt-1 block">{targetMentionsCount}</span>
+              <span className="text-slate-400 text-[10px] uppercase font-semibold tracking-wider truncate block">
+                Target Mentions
+              </span>
+              <span className="text-xl font-bold font-sans text-emerald-400 mt-1 block">
+                {targetMentionsCount}
+              </span>
             </div>
 
-            {/* Box 2 */}
+            {/* Box 2: Target Cited */}
             <div className="bg-surface-900 border border-surface-border rounded-lg p-3 min-w-0 flex flex-col justify-between">
-              <span className="text-slate-400 text-[10px] uppercase font-semibold tracking-wider truncate block">Target Cited</span>
-              <span className="text-xl font-bold font-sans text-rose-500 mt-1 block">{targetCited}</span>
+              <span className="text-slate-400 text-[10px] uppercase font-semibold tracking-wider truncate block">
+                Target Cited
+              </span>
+              <span className="text-xl font-bold font-sans text-rose-500 mt-1 block">
+                {targetCited}
+              </span>
             </div>
 
-            {/* Box 3 */}
+            {/* Box 3: Total Citations */}
             <div className="bg-surface-900 border border-surface-border rounded-lg p-3 min-w-0 flex flex-col justify-between">
-              <span className="text-slate-400 text-[10px] uppercase font-semibold tracking-wider truncate block">Total Citations</span>
-              <span className="text-xl font-bold font-sans text-white mt-1 block">{totalCitations}</span>
+              <span className="text-slate-400 text-[10px] uppercase font-semibold tracking-wider truncate block">
+                Total Citations
+              </span>
+              <span className="text-xl font-bold font-sans text-white mt-1 block">
+                {totalCitations}
+              </span>
             </div>
 
-            {/* Box 4 */}
+            {/* Box 4: Top Competitor */}
             <div className="bg-surface-900 border border-surface-border rounded-lg p-3 min-w-0 flex flex-col justify-between">
-              <span className="text-slate-400 text-[10px] uppercase font-semibold tracking-wider truncate block">Top Competitor</span>
-              <div className="flex items-baseline justify-between gap-1 text-sm font-bold font-sans text-white mt-1 truncate">
-                <span className="truncate">{topCompetitorName}</span>
-                <span className="text-xs text-slate-400 font-normal shrink-0">3 runs</span>
+              <span className="text-slate-400 text-[10px] uppercase font-semibold tracking-wider truncate block">
+                Top Competitor
+              </span>
+              <div className="flex items-baseline gap-1.5 mt-1 overflow-hidden">
+                <span className="text-sm font-bold font-sans text-white truncate shrink min-w-0" title={topCompetitorName}>
+                  {topCompetitorName}
+                </span>
+                <span className="text-[11px] font-sans text-slate-400 shrink-0 whitespace-nowrap">
+                  3 runs
+                </span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Agent Web Search Queries */}
+        {/* Search Queries Triggered */}
         <div className="space-y-1.5">
           <span className="text-[11px] font-semibold text-slate-300 uppercase tracking-wider block">
             Agent Web Search Queries ({activeRun?.search_queries?.length || 3} Executed)
@@ -139,7 +169,7 @@ export default function PromptExplorer({ runs = [] }) {
             {activeRun?.search_queries?.map((q, idx) => (
               <span
                 key={idx}
-                className="text-[11px] px-2.5 py-1 bg-surface-900 border border-surface-border rounded font-mono text-slate-300 flex items-center gap-1.5"
+                className="text-[11px] px-2.5 py-1 bg-surface-900 border border-surface-border rounded text-slate-300 flex items-center gap-1.5"
               >
                 <Search className="w-3 h-3 text-slate-500" />
                 <span>{q.query}</span>
@@ -154,14 +184,14 @@ export default function PromptExplorer({ runs = [] }) {
             <span className="text-[11px] font-semibold text-slate-300 uppercase tracking-wider">
               Full AI Generated Response
             </span>
-            <span className="text-[10px] text-slate-400 font-mono">Scrollable view</span>
+            <span className="text-[10px] text-slate-400">Scrollable view</span>
           </div>
-          <div className="bg-surface-900 border border-surface-border rounded-lg p-4 text-xs leading-relaxed space-y-2.5 text-slate-300 max-h-52 overflow-y-auto custom-scrollbar">
+          <div className="bg-surface-900 border border-surface-border rounded-lg p-4 text-xs leading-relaxed space-y-2.5 text-slate-300 max-h-52 overflow-y-auto custom-scrollbar font-sans">
             {activeRun?.raw_answer ? (
               activeRun.raw_answer.split('\n\n').map((paragraph, idx) => {
                 if (paragraph.startsWith('CITED:')) {
                   return (
-                    <div key={idx} className="pt-2 border-t border-surface-border text-[11px] font-mono text-slate-400">
+                    <div key={idx} className="pt-2 border-t border-surface-border text-[11px] text-slate-400">
                       {paragraph}
                     </div>
                   );
@@ -170,7 +200,7 @@ export default function PromptExplorer({ runs = [] }) {
                   <p key={idx} dangerouslySetInnerHTML={{
                     __html: paragraph
                       .replace(/\*\*(.*?)\*\*/g, '<strong class="text-white">$1</strong>')
-                      .replace(/\[(\d+)\]/g, '<span class="text-blue-400 font-mono font-bold bg-blue-500/20 px-1.5 py-0.5 rounded border border-blue-500/30">[$1]</span>')
+                      .replace(/\[(\d+)\]/g, '<span class="text-blue-400 font-bold bg-blue-500/20 px-1.5 py-0.5 rounded border border-blue-500/30">[$1]</span>')
                   }} />
                 );
               })
@@ -186,11 +216,11 @@ export default function PromptExplorer({ runs = [] }) {
             <span className="text-[11px] font-semibold text-slate-300 uppercase tracking-wider">
               All {citedSources.length || 5} Cited Sources for this Prompt
             </span>
-            <span className="text-[10px] text-slate-400 font-mono">Tavily Relevance Score</span>
+            <span className="text-[10px] text-slate-400">Tavily Relevance Score</span>
           </div>
 
           <div className="border border-surface-border rounded-lg overflow-hidden max-h-44 overflow-y-auto custom-scrollbar">
-            <table className="w-full text-left text-xs">
+            <table className="w-full text-left text-xs font-sans">
               <thead className="bg-surface-800 text-slate-400 border-b border-surface-border sticky top-0 z-10">
                 <tr>
                   <th className="py-2 px-3 font-medium">Ref</th>
@@ -202,13 +232,13 @@ export default function PromptExplorer({ runs = [] }) {
               <tbody className="divide-y divide-surface-border text-slate-300">
                 {citedSources.map((source, idx) => (
                   <tr key={idx} className="hover:bg-surface-800/40">
-                    <td className="py-2 px-3 font-mono text-blue-400 font-bold">[{idx + 1}]</td>
-                    <td className="py-2 px-3 font-mono text-white font-medium">{source.domain}</td>
+                    <td className="py-2 px-3 text-blue-400 font-bold">[{idx + 1}]</td>
+                    <td className="py-2 px-3 text-white font-medium">{source.domain}</td>
                     <td className="py-2 px-3 truncate max-w-xs text-slate-300">
                       <div className="font-medium text-white truncate">{source.title || source.domain}</div>
-                      <div className="text-[10px] text-slate-500 truncate font-mono">{source.url}</div>
+                      <div className="text-[10px] text-slate-500 truncate">{source.url}</div>
                     </td>
-                    <td className="py-2 px-3 text-right font-mono text-emerald-400 font-semibold">
+                    <td className="py-2 px-3 text-right text-emerald-400 font-semibold">
                       {(source.score || 0.85).toFixed(3)}
                     </td>
                   </tr>
@@ -223,13 +253,13 @@ export default function PromptExplorer({ runs = [] }) {
           <span className="text-[11px] font-semibold text-slate-300 uppercase tracking-wider block">
             Target Brand Mentions Extracted (Amul)
           </span>
-          <div className="space-y-1 text-xs">
-            <div className="p-2 rounded bg-surface-900 border border-surface-border text-slate-300 font-sans">
-              <span className="font-mono text-emerald-400 font-bold mr-1.5">[Amul]</span>
+          <div className="space-y-1 text-xs font-sans">
+            <div className="p-2 rounded bg-surface-900 border border-surface-border text-slate-300">
+              <span className="text-emerald-400 font-bold mr-1.5">[Amul]</span>
               "...particularly <strong>Amul</strong> and President Butter."
             </div>
-            <div className="p-2 rounded bg-surface-900 border border-surface-border text-slate-300 font-sans">
-              <span className="font-mono text-emerald-400 font-bold mr-1.5">[Amul]</span>
+            <div className="p-2 rounded bg-surface-900 border border-surface-border text-slate-300">
+              <span className="text-emerald-400 font-bold mr-1.5">[Amul]</span>
               "1. <strong>Amul Butter:</strong> Amul is a household name in India, known for its rich flavor and creamy texture."
             </div>
           </div>
