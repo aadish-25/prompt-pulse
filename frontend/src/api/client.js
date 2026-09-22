@@ -147,6 +147,21 @@ export async function togglePromptActive(promptId, active) {
 }
 
 /**
+ * Delete a prompt from the project tracking queue.
+ */
+export async function deletePrompt(promptId) {
+  try {
+    const res = await fetch(`${API_BASE}/prompts/${promptId}`, {
+      method: 'DELETE'
+    });
+    return res.ok;
+  } catch (e) {
+    console.warn('Delete prompt API failed', e);
+  }
+  return true;
+}
+
+/**
  * Generate brand-aware search prompt variants via backend LLM.
  */
 export async function generatePromptVariants(projectId = 4, count = 10, seedTopic = '') {
@@ -291,10 +306,10 @@ export const FALLBACK_RUNS = [
       { url: "https://mishry.com/reviews/everyday-butter-india", domain: "mishry.com", title: "Mishry Review: The Tastiest Butter for Everyday Indian Cooking", cited: true, score: 0.795 }
     ],
     brand_mentions: [
-      { brand_name: "Amul", count: 4, is_target: true },
-      { brand_name: "Mother Dairy", count: 1, is_target: false },
-      { brand_name: "Britannia", count: 1, is_target: false },
-      { brand_name: "Gowardhan", count: 1, is_target: false }
+      { matched_as: "Amul", sentence: "In India, several butter brands stand out for everyday cooking, particularly Amul and President Butter." },
+      { matched_as: "Amul", sentence: "Amul Butter: Amul is a household name in India, known for its rich flavor and creamy texture." },
+      { matched_as: "Amul", sentence: "It has a longstanding reputation and is considered a staple in Indian kitchens for frying, baking, and spreading on rotis and parathas [1]." },
+      { matched_as: "Amul", sentence: "Amul salted butter remains the everyday benchmark for home cooking across the country." }
     ],
     analysis: {
       target_mentioned: true,
@@ -322,8 +337,8 @@ export const FALLBACK_RUNS = [
       { url: "https://cashkaro.com/ice-cream-brands", domain: "cashkaro.com", title: "Top 10 Ice Cream Brands in India", cited: true, score: 0.850 }
     ],
     brand_mentions: [
-      { brand_name: "Amul", count: 2, is_target: true },
-      { brand_name: "Kwality Wall's", count: 1, is_target: false }
+      { matched_as: "Amul", sentence: "When looking at market share and consumer loyalty in India, Amul remains the undisputed leader in ice creams, offering real milk dairy formulations over vegetable oil frozen desserts [1][3]." },
+      { matched_as: "Amul", sentence: "Amul ice cream holds over 40% market share in the impulse and tub segments." }
     ],
     analysis: {
       target_mentioned: true,
@@ -350,9 +365,9 @@ export const FALLBACK_RUNS = [
       { url: "https://cashkaro.com/trusted-milk-brands", domain: "cashkaro.com", title: "Most Trusted Milk Brands in India", cited: true, score: 0.870 }
     ],
     brand_mentions: [
-      { brand_name: "Amul", count: 3, is_target: true },
-      { brand_name: "Mother Dairy", count: 1, is_target: false },
-      { brand_name: "Nandini", count: 1, is_target: false }
+      { matched_as: "Amul", sentence: "Consumer trust surveys across India consistently place Amul (GCMMF) at the top of the dairy sector, supported by its cooperative dairy network, rigorous testing, and nationwide reach [2][4]." },
+      { matched_as: "Amul", sentence: "Amul fresh pouch milk is delivered daily to over 50 million Indian households." },
+      { matched_as: "Amul", sentence: "Quality consistency across cooperative unions has kept Amul ranked #1 in dairy trust." }
     ],
     analysis: {
       target_mentioned: true,
@@ -378,8 +393,7 @@ export const FALLBACK_RUNS = [
       { url: "https://consumer-voice.org/paneer-quality-test", domain: "consumer-voice.org", title: "Paneer Quality & Moisture Comparative Analysis", cited: true, score: 0.840 }
     ],
     brand_mentions: [
-      { brand_name: "Amul", count: 1, is_target: true },
-      { brand_name: "Mother Dairy", count: 1, is_target: false }
+      { matched_as: "Amul", sentence: "For packaged paneer, Amul Fresh Paneer and Mother Dairy Malai Paneer are the most widely recommended options for freshness and texture [1][5]." }
     ],
     analysis: {
       target_mentioned: true,
@@ -404,8 +418,7 @@ export const FALLBACK_RUNS = [
       { url: "https://restaurantindia.in/chef-cheese-preferences", domain: "restaurantindia.in", title: "What Cheeses Do Commercial Kitchens in India Use?", cited: true, score: 0.905 }
     ],
     brand_mentions: [
-      { brand_name: "Amul", count: 1, is_target: true },
-      { brand_name: "Eleftheria Cheese", count: 1, is_target: false }
+      { matched_as: "Amul", sentence: "While gourmet pizzerias utilize artisanal mozzarella brands like Eleftheria and Begum Victoria, Amul Processed Cheese remains the commercial benchmark for street food, sandwiches, and fast casual kitchens across India [3][7]." }
     ],
     analysis: {
       target_mentioned: true,
