@@ -251,14 +251,16 @@ export default function App() {
 
   // Guard: only generate if a project exists
   const handleGenerateVariants = async () => {
-    if (!activeProjectId) return [];
+    if (!activeProjectId) return { variants: [], model: selectedModel };
     setIsGeneratingVariants(true);
     try {
-      const res = await generatePromptVariants(activeProjectId, 10);
-      return res?.variants || [];
+      console.log(`[App.jsx] Requesting 10 prompt variants with model: "${selectedModel}" for Project #${activeProjectId}`);
+      const res = await generatePromptVariants(activeProjectId, 10, selectedModel);
+      console.log(`[App.jsx] Received prompt variants from backend. Model used: "${res?.model || selectedModel}"`);
+      return res;
     } catch (err) {
       console.error('Prompt generation error:', err);
-      return [];
+      return { variants: [], model: selectedModel };
     } finally {
       setIsGeneratingVariants(false);
     }
@@ -352,6 +354,7 @@ export default function App() {
               {activeTab === 'generator' && (
                 <PromptCreator
                   project={activeProject}
+                  selectedModel={selectedModel}
                   candidates={candidates}
                   selectedIds={selectedIds}
                   onCandidatesChange={setCandidates}

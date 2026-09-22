@@ -20,6 +20,7 @@ function createCandidate(prompt, topic = 'Natural Search', intent = 'Consumer Qu
  */
 export default function PromptCreator({
   project,
+  selectedModel,
   candidates = [],
   selectedIds,
   onCandidatesChange,
@@ -61,17 +62,21 @@ export default function PromptCreator({
   const handleGenerate = async () => {
     if (isGenerating || !project) return;
     if (onGenerateVariants) {
-      const newVariants = await onGenerateVariants();
+      console.log(`[PromptCreator] Requesting generate variants with model: "${selectedModel}"`);
+      const res = await onGenerateVariants();
+      const newVariants = Array.isArray(res) ? res : res?.variants || [];
+      const usedModel = res?.model || selectedModel || 'selected model';
       if (newVariants && newVariants.length > 0) {
         const formatted = newVariants.map(v => createCandidate(
           v.prompt || v.text,
-          v.topic || v.intent_category || 'Natural Search',
-          v.intent || 'Consumer Query',
-          v.rationale || `Relevant buyer inquiry for ${brandName} market.`
+          v.topic || v.intent_category || 'Consumer Query',
+          v.intent || 'Natural Search',
+          v.rationale || `Relevant inquiry for ${brandName} market.`
         ));
         onCandidatesChange(formatted);
         onSelectedIdsChange(new Set(formatted.map(c => c.id)));
-        showToast(`Generated ${formatted.length} new brand-aware prompts!`);
+        showToast(`Generated ${formatted.length} prompts using ${usedModel}`);
+        console.log(`[PromptCreator] Successfully loaded ${formatted.length} prompts generated with model: "${usedModel}"`);
         return;
       }
     }
@@ -133,20 +138,27 @@ export default function PromptCreator({
 
         {/* Only horizontal divider — equal spacing on both sides */}
         <div className="border-t border-surface-border px-5 pt-3.5 pb-4 space-y-3.5">
-          {/* Description + Generate on same row */}
+          {/* Description + Model badge + Generate button on same row */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <p className="text-xs text-slate-400 leading-relaxed">
               Deduces {brandName}'s product category and competitive landscape to generate realistic consumer search questions.
             </p>
-            <button
-              type="button"
-              onClick={handleGenerate}
-              disabled={isGenerating || !project}
-              className="shrink-0 whitespace-nowrap bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-semibold text-xs py-2.5 px-4 rounded-lg flex items-center gap-2 shadow-sm transition-all shadow-blue-600/20 active:scale-95 cursor-pointer"
-            >
-              {isGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-              <span>{isGenerating ? 'Generating...' : 'Generate 10 New Prompts'}</span>
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              {selectedModel && (
+                <span className="text-[11px] text-slate-400 font-mono bg-surface-900 border border-surface-border px-2.5 py-1.5 rounded-lg hidden md:inline-block" title="Active Model">
+                  {selectedModel}
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={handleGenerate}
+                disabled={isGenerating || !project}
+                className="shrink-0 whitespace-nowrap bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-semibold text-xs py-2.5 px-4 rounded-lg flex items-center gap-2 shadow-sm transition-all shadow-blue-600/20 active:scale-95 cursor-pointer"
+              >
+                {isGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                <span>{isGenerating ? 'Generating...' : 'Generate 10 New Prompts'}</span>
+              </button>
+            </div>
           </div>
 
           {/* Custom prompt row — no extra divider */}
