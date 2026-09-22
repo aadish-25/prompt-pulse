@@ -19,17 +19,60 @@ export default function PromptExplorer({ runs = [], focusedPromptId = null, acti
 
   if (!runs || runs.length === 0) {
     return (
-      <div className="bg-surface-850 border border-surface-border rounded-xl p-12 text-center space-y-4">
-        <div className="w-12 h-12 mx-auto rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center">
-          <Search className="w-6 h-6" />
+      <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left column — prompt list placeholder */}
+        <div className="lg:col-span-5 bg-surface-850 border border-surface-border rounded-xl p-4 flex flex-col space-y-3">
+          <div className="flex items-center justify-between pb-2 border-b border-surface-border text-xs">
+            <span className="font-bold text-white">Executed Test Prompts</span>
+            <span className="text-slate-500 text-[11px]">(0 Evaluated)</span>
+          </div>
+          <div className="flex flex-col items-center justify-center py-12 space-y-3 text-center">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center">
+              <Search className="w-5 h-5" />
+            </div>
+            <div className="space-y-1 max-w-xs">
+              <p className="text-xs font-semibold text-white">No prompts executed yet</p>
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                Add prompts in the <strong className="text-slate-400">AI Prompt Creator</strong> tab, then run a tracking batch.
+              </p>
+            </div>
+          </div>
         </div>
-        <div className="space-y-1.5 max-w-md mx-auto">
-          <h4 className="text-base font-bold text-white">No Executions Grounded Yet</h4>
-          <p className="text-xs text-slate-400 leading-relaxed">
-            This brand project has not executed any tracking batches yet. Navigate to <strong>Tracked Prompts</strong> or <strong>AI Prompt Creator</strong> to add queries, then click <strong>Run Tracking Batch</strong> to evaluate AI responses and ground citations.
-          </p>
+
+        {/* Right column — execution detail placeholder */}
+        <div className="lg:col-span-7 bg-surface-850 border border-surface-border rounded-xl p-5 space-y-4">
+          {/* Placeholder header strip */}
+          <div className="border-b border-surface-border pb-3.5 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div className="h-6 w-36 rounded bg-surface-800 border border-surface-border" />
+              <div className="h-5 w-28 rounded-full bg-surface-800 border border-surface-border" />
+            </div>
+            <div className="h-4 w-2/3 rounded bg-surface-800 border border-surface-border" />
+            {/* Placeholder 4-stat strip */}
+            <div className="grid grid-cols-4 gap-2.5">
+              {['Target Mentions', 'Target Cited', 'Total Citations', 'Top Competitor'].map((label) => (
+                <div key={label} className="bg-surface-900 border border-surface-border rounded-lg p-3 space-y-2">
+                  <span className="text-slate-500 text-[10px] uppercase font-semibold tracking-wider block">{label}</span>
+                  <div className="h-6 w-8 rounded bg-surface-800" />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Center message */}
+          <div className="flex flex-col items-center justify-center py-10 space-y-3 text-center">
+            <div className="w-10 h-10 rounded-xl bg-slate-700/50 border border-surface-border flex items-center justify-center">
+              <Search className="w-5 h-5 text-slate-500" />
+            </div>
+            <div className="space-y-1 max-w-sm">
+              <p className="text-xs font-semibold text-slate-300">No execution data to display</p>
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                Once you run a tracking batch, the AI-generated response, web search queries, grounding sources, and brand mention extractions will appear here.
+              </p>
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
     );
   }
 

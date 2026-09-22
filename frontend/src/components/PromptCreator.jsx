@@ -149,18 +149,35 @@ export default function PromptCreator({
       )}
 
       {/* Brand-Aware Action Bar */}
-      <div className="bg-surface-850 border border-surface-border rounded-xl p-5 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-blue-400" />
-              Brand-Aware Prompt Creator for <span className="text-blue-400 font-semibold">{brandName}</span>
+      <div className="bg-surface-850 border border-surface-border rounded-xl p-6 space-y-5">
+        {/* Title row */}
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
+            <Sparkles className="w-4 h-4" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-white leading-tight">
+              Brand-Aware Prompt Creator
+              {brandName !== 'Target Brand' && (
+                <span className="text-blue-400"> for {brandName}</span>
+              )}
             </h3>
-            <p className="text-xs text-slate-400 max-w-2xl leading-relaxed">
-              Deduces {brandName}'s product category and competitors to create realistic consumer search questions. <strong className="text-slate-200">Never mentions "{brandName}" directly in the prompt.</strong>
+            <p className="text-[11px] text-slate-500 mt-0.5">
+              AI-powered consumer search query generator
             </p>
           </div>
-          
+        </div>
+
+        {/* Description + CTA */}
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-5 pt-1 border-t border-surface-border">
+          <p className="text-xs text-slate-400 leading-relaxed max-w-xl">
+            Deduces {brandName}'s product category and competitive landscape to generate realistic
+            consumer search questions.{' '}
+            <strong className="text-slate-300">
+              The brand name "{brandName}" is never placed directly inside the prompts.
+            </strong>
+          </p>
+
           <button
             type="button"
             onClick={handleGenerate}
@@ -177,13 +194,13 @@ export default function PromptCreator({
         </div>
 
         {/* Custom Prompt Input Row */}
-        <div className="pt-3 border-t border-surface-border flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-1 border-t border-surface-border">
           <input
             type="text"
             value={customText}
             onChange={(e) => setCustomText(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleAddCustom()}
-            placeholder={`Or type your own custom prompt (e.g. realistic buyer question for ${brandName} market)...`}
+            placeholder={`Type your own custom prompt for ${brandName}...`}
             className="flex-1 bg-surface-900 border border-surface-border rounded-lg px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none transition-colors"
           />
           <button
