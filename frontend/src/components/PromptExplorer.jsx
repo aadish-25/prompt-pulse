@@ -200,7 +200,7 @@ export default function PromptExplorer({ runs = [], focusedPromptId = null }) {
                   <p key={idx} dangerouslySetInnerHTML={{
                     __html: paragraph
                       .replace(/\*\*(.*?)\*\*/g, '<strong class="text-white">$1</strong>')
-                      .replace(/\[(\d+)\]/g, '<span class="text-blue-400 font-bold bg-blue-500/20 px-1.5 py-0.5 rounded border border-blue-500/30">[$1]</span>')
+                      .replace(/\[(\d+)\]/g, '<span class="inline-block text-[11px] text-blue-400 font-bold bg-blue-500/20 px-1 py-0.5 rounded border border-blue-500/30 mx-0.5 tracking-tight">[$1]</span>')
                   }} />
                 );
               })
