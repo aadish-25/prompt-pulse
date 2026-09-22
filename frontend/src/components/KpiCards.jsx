@@ -22,7 +22,7 @@ export default function KpiCards({ summary, activeProject }) {
       <div className="bg-surface-850 border border-surface-border rounded-xl p-3.5 flex flex-col justify-between">
         <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
           <span className="font-medium text-slate-300">AI Mention Visibility</span>
-          <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-mono text-[10px] border border-emerald-500/20">
+          <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-semibold text-[10px] border border-emerald-500/20">
             {mentionedCount}/{totalRuns} Prompts
           </span>
         </div>
@@ -41,7 +41,7 @@ export default function KpiCards({ summary, activeProject }) {
       <div className="bg-surface-850 border border-amber-500/30 rounded-xl p-3.5 flex flex-col justify-between relative overflow-hidden bg-gradient-to-b from-amber-500/5 to-transparent">
         <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
           <span className="font-medium text-amber-200">Target Domain Citations</span>
-          <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 font-mono text-[10px] border border-amber-500/20">
+          <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 font-semibold text-[10px] border border-amber-500/20">
             {targetDomain}
           </span>
         </div>
@@ -59,7 +59,7 @@ export default function KpiCards({ summary, activeProject }) {
       <div className="bg-surface-850 border border-surface-border rounded-xl p-3.5 flex flex-col justify-between">
         <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
           <span className="font-medium text-slate-300">Target Sentiment</span>
-          <span className="text-xs text-slate-400 font-mono">{totalRuns} evaluations</span>
+          <span className="text-xs text-slate-400">{totalRuns} evaluations</span>
         </div>
         <div className="flex items-baseline gap-2 my-1">
           <span className="text-2xl font-bold text-white tracking-tight">100%</span>
@@ -74,11 +74,11 @@ export default function KpiCards({ summary, activeProject }) {
       <div className="bg-surface-850 border border-surface-border rounded-xl p-3.5 flex flex-col justify-between">
         <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
           <span className="font-medium text-slate-300">Top Detected Competitor</span>
-          <span className="text-xs text-slate-400 font-mono">{competitorCount}</span>
+          <span className="text-xs text-slate-400">{competitorCount}</span>
         </div>
         <div className="flex items-baseline gap-2 my-1">
           <span className="text-xl font-bold text-white tracking-tight truncate">{topCompetitor}</span>
-          <span className="text-xs text-slate-400 font-mono">{topCompetitorRuns} runs</span>
+          <span className="text-xs text-slate-400 font-medium">{topCompetitorRuns} runs</span>
         </div>
         <p className="text-xs text-slate-400 mt-1 truncate">
           Most detected rival across AI responses

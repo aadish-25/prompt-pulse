@@ -181,7 +181,7 @@ export default function PromptCreator({
             <label htmlFor="select-all-checkbox" className="text-xs font-bold text-slate-300 uppercase tracking-wider cursor-pointer select-none">
               Select All ({candidates.length} Prompts)
             </label>
-            <span className="text-xs text-slate-500 font-mono">Page 1 of 1 · {candidates.length} per page</span>
+            <span className="text-xs text-slate-500">Page 1 of 1 · {candidates.length} per page</span>
           </div>
 
           <button
@@ -218,10 +218,10 @@ export default function PromptCreator({
                 />
                 <div className="flex-1 space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-[11px] px-2 py-0.5 rounded bg-surface-800 text-slate-300 font-mono border border-surface-border">
+                    <span className="text-[11px] px-2.5 py-0.5 rounded bg-surface-800 text-slate-300 font-medium border border-surface-border">
                       {item.topic}
                     </span>
-                    <span className="text-[11px] text-slate-500">
+                    <span className="text-[11px] text-slate-400">
                       {item.intent}
                     </span>
                   </div>

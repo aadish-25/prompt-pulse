@@ -13,7 +13,7 @@ export default function Footer({ apiOnline = true }) {
             <Radar className="w-4 h-4 text-blue-400" />
             PromptPulse
           </span>
-          <span className="text-slate-500 font-mono">v0.1.0</span>
+          <span className="text-slate-500 font-medium">v0.1.0</span>
           <span className="text-slate-600">·</span>
           <span className="text-slate-400">Generative Engine Optimization (GEO) Platform</span>
         </div>

@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 
 /**
  * CitationAudit component - Competitor Share of Voice & Domain Citation Audit tables.
+ * Free of boxy font-mono, using clean proportional typography.
  */
 export default function CitationAudit({ summary, project, citations = [] }) {
   const brandName = project?.brand_name || 'Amul';
@@ -55,7 +56,6 @@ export default function CitationAudit({ summary, project, citations = [] }) {
     // 3. AI-Discovered competitors (not in configured set)
     detectedMap.forEach((count, brandLower) => {
       if (!configuredSet.has(brandLower) && brandLower !== brandName.toLowerCase()) {
-        // Find original casing
         const original = summary?.top_competitors?.find(c => c.brand.toLowerCase() === brandLower);
         const name = original ? original.brand : brandLower;
         const freq = totalRuns > 0 ? ((count / totalRuns) * 100).toFixed(1) : '0.0';
@@ -93,7 +93,7 @@ export default function CitationAudit({ summary, project, citations = [] }) {
     return list.sort((a, b) => {
       const aIsTarget = a.domain.toLowerCase().includes(targetDomain.toLowerCase());
       const bIsTarget = b.domain.toLowerCase().includes(targetDomain.toLowerCase());
-      if (aIsTarget) return 1; // Put target at the bottom or keep sorted
+      if (aIsTarget) return 1;
       if (bIsTarget) return -1;
       return b.cited - a.cited || b.retrieved - a.retrieved;
     });
@@ -110,7 +110,7 @@ export default function CitationAudit({ summary, project, citations = [] }) {
               <h3 className="text-sm font-bold text-white">Competitor Share of Voice</h3>
               <p className="text-xs text-slate-400">Combines user-configured rivals with new competitors discovered by AI</p>
             </div>
-            <span className="text-xs font-mono bg-surface-800 px-2 py-1 rounded text-slate-300">
+            <span className="text-xs bg-surface-800 px-2 py-1 rounded text-slate-300 font-medium">
               {competitorRows.length} Tracked
             </span>
           </div>
@@ -137,23 +137,23 @@ export default function CitationAudit({ summary, project, citations = [] }) {
                     </td>
                     <td className="py-2.5 px-3">
                       {row.isTarget ? (
-                        <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                        <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-500/10 text-blue-400 font-medium border border-blue-500/20">
                           {row.typeLabel}
                         </span>
                       ) : row.type === 'discovered' ? (
-                        <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-purple-500/10 text-purple-300 border border-purple-500/20">
+                        <span className="px-1.5 py-0.5 rounded text-[10px] bg-purple-500/10 text-purple-300 font-medium border border-purple-500/20">
                           {row.typeLabel}
                         </span>
                       ) : (
-                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono ${row.active ? 'bg-surface-800 text-slate-300' : 'bg-surface-800 text-slate-400'} border border-surface-border`}>
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] ${row.active ? 'bg-surface-800 text-slate-300' : 'bg-surface-800 text-slate-400'} font-medium border border-surface-border`}>
                           {row.typeLabel}
                         </span>
                       )}
                     </td>
-                    <td className={`py-2.5 px-3 text-right font-mono ${row.isTarget ? 'text-white' : row.active ? 'text-slate-300' : 'text-slate-500'}`}>
+                    <td className={`py-2.5 px-3 text-right ${row.isTarget ? 'text-white font-medium' : row.active ? 'text-slate-300' : 'text-slate-500'}`}>
                       {row.count} {row.count === 1 ? 'run' : 'runs'}
                     </td>
-                    <td className={`py-2.5 px-3 text-right font-mono ${row.isTarget ? 'font-bold text-emerald-400' : row.active ? 'text-blue-400 font-semibold' : 'text-slate-500'}`}>
+                    <td className={`py-2.5 px-3 text-right ${row.isTarget ? 'font-bold text-emerald-400' : row.active ? 'text-blue-400 font-semibold' : 'text-slate-500'}`}>
                       {row.frequency}
                     </td>
                   </tr>
@@ -170,7 +170,7 @@ export default function CitationAudit({ summary, project, citations = [] }) {
               <h3 className="text-sm font-bold text-white">Domain Citation Audit</h3>
               <p className="text-xs text-slate-400">Domains sorted strictly by actual citation count in AI search responses</p>
             </div>
-            <span className="text-xs font-mono bg-surface-800 px-2 py-1 rounded text-slate-300">
+            <span className="text-xs bg-surface-800 px-2 py-1 rounded text-slate-300 font-medium">
               {domainRows.length} Domains Audited
             </span>
           </div>
@@ -193,22 +193,22 @@ export default function CitationAudit({ summary, project, citations = [] }) {
                   if (isTarget) {
                     return (
                       <tr key={idx} className="bg-amber-500/10">
-                        <td className="py-2.5 px-3 font-mono font-bold text-amber-300">
+                        <td className="py-2.5 px-3 font-bold text-amber-300">
                           {d.domain} (Target)
                         </td>
-                        <td className="py-2.5 px-3 text-right font-mono text-amber-300">{d.retrieved}</td>
-                        <td className="py-2.5 px-3 text-right font-mono text-amber-400 font-bold">{d.cited}</td>
-                        <td className="py-2.5 px-3 text-right font-mono text-amber-400">{rate}%</td>
+                        <td className="py-2.5 px-3 text-right text-amber-300">{d.retrieved}</td>
+                        <td className="py-2.5 px-3 text-right text-amber-400 font-bold">{d.cited}</td>
+                        <td className="py-2.5 px-3 text-right text-amber-400">{rate}%</td>
                       </tr>
                     );
                   }
 
                   return (
                     <tr key={idx} className="hover:bg-surface-800/40 transition-colors">
-                      <td className="py-2.5 px-3 font-mono font-medium text-white">{d.domain}</td>
-                      <td className="py-2.5 px-3 text-right font-mono">{d.retrieved}</td>
-                      <td className="py-2.5 px-3 text-right font-mono text-emerald-400 font-semibold">{d.cited}</td>
-                      <td className="py-2.5 px-3 text-right font-mono">{rate}%</td>
+                      <td className="py-2.5 px-3 font-medium text-white">{d.domain}</td>
+                      <td className="py-2.5 px-3 text-right">{d.retrieved}</td>
+                      <td className="py-2.5 px-3 text-right text-emerald-400 font-semibold">{d.cited}</td>
+                      <td className="py-2.5 px-3 text-right">{rate}%</td>
                     </tr>
                   );
                 })}

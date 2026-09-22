@@ -108,16 +108,70 @@ export async function triggerBatchRun(projectId = 4, rounds = 1, model = 'openai
 }
 
 /**
+ * Fetch all tracked prompts configured for a project.
+ */
+export async function fetchProjectPrompts(projectId = 4) {
+  try {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/prompts`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.length > 0) return data;
+    }
+  } catch (e) {
+    console.warn('API unavailable, using fallback project prompts', e);
+  }
+  return [
+    { id: 9, project_id: projectId, text: 'Which butter brand is best for everyday cooking in India?', active: true },
+    { id: 10, project_id: projectId, text: 'What is the most popular ice cream brand in India right now?', active: true },
+    { id: 11, project_id: projectId, text: 'Which Indian dairy brand is most trusted for milk and milk products?', active: true },
+    { id: 12, project_id: projectId, text: 'Best paneer brand available in Indian supermarkets in 2026?', active: true },
+    { id: 13, project_id: projectId, text: 'Which cheese brand do professional chefs in India prefer?', active: true }
+  ];
+}
+
+/**
+ * Toggle active state of a prompt.
+ */
+export async function togglePromptActive(promptId, active) {
+  try {
+    const res = await fetch(`${API_BASE}/prompts/${promptId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ active })
+    });
+    if (res.ok) return await res.json();
+  } catch (e) {
+    console.warn('Toggle prompt active API failed', e);
+  }
+  return { id: promptId, active };
+}
+
+/**
  * Generate brand-aware search prompt variants via backend LLM.
  */
-export async function generatePromptVariants(projectId = 4, count = 10) {
+export async function generatePromptVariants(projectId = 4, count = 10, seedTopic = '') {
   try {
     const res = await fetch(`${API_BASE}/projects/${projectId}/prompts/generate-variants`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ count })
+      body: JSON.stringify({ 
+        count: Math.min(count, 10),
+        seed_topic: seedTopic || 'everyday cooking and consumer dairy products'
+      })
     });
-    if (res.ok) return await res.json();
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.variants && data.variants.length > 0) {
+        return {
+          variants: data.variants.map(v => ({
+            prompt: v.text,
+            topic: v.intent_category || 'Consumer Query',
+            intent: 'Natural Search',
+            rationale: v.rationale
+          }))
+        };
+      }
+    }
   } catch (e) {
     console.warn('Variant generator API unavailable, using fallback candidates', e);
   }
