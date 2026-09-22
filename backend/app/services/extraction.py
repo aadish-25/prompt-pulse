@@ -1,4 +1,5 @@
 import os
+import re
 from typing import Literal
 from pydantic import BaseModel
 from openai import OpenAI
@@ -10,7 +11,9 @@ client = OpenAI(
 )
 
 
-class BrandMention(BaseModel):
+class ExtractedBrandMention(BaseModel):
+    """A single mention of the target brand found by text matching. Named
+    'Extracted' to distinguish it from the SQLAlchemy models.BrandMention ORM class."""
     sentence: str
     matched_as: str
 
@@ -35,16 +38,18 @@ EXTRACTION_SYSTEM_PROMPT = (
 
 def find_target_mentions(
     answer: str, brand_name: str, aliases: list[str]
-) -> list[BrandMention]:
-    results: list[BrandMention] = []
+) -> list[ExtractedBrandMention]:
+    results: list[ExtractedBrandMention] = []
     names_to_check = [brand_name] + aliases
 
     for line in answer.splitlines():
         if not line.strip():
             continue
         for name in names_to_check:
-            if name.lower() in line.lower():
-                results.append(BrandMention(sentence=line, matched_as=name))
+            # word-boundary regex prevents false positives like matching
+            # "boat" inside "sailboat" or "bata" inside "debate"
+            if re.search(rf"\b{re.escape(name)}\b", line, flags=re.IGNORECASE):
+                results.append(ExtractedBrandMention(sentence=line, matched_as=name))
                 break
 
     return results
