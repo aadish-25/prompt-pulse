@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PromptPulse — Generative Engine Optimization (GEO) Platform</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            surface: {
+              900: '#0b0f17',
+              850: '#111724',
+              800: '#172033',
+              700: '#1f2d47',
+              border: '#263554',
+            }
+          },
+          spacing: {
+            '4.5': '1.125rem',
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    body {
+      background-color: #0b0f17;
+      color: #e2e8f0;
+      font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #0f1523;
+      border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #263554;
+      border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #3b82f6;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased">
+
+  <!-- Top Navigation Header -->
+  <header class="border-b border-surface-border bg-surface-850 sticky top-0 z-40 px-6 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-6">
+      <div class="flex items-center gap-2.5 cursor-pointer" onclick="showView('dashboard')">
+        <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold shadow-md shadow-blue-500/20">
+          <i data-lucide="radar" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <span class="font-bold tracking-tight text-white text-base">PromptPulse</span>
+          <span class="ml-2 text-xs px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 font-mono border border-blue-500/20">GEO Tracker</span>
+        </div>
+      </div>
+
+      <div class="h-5 w-px bg-surface-border"></div>
+
+      <!-- Project Switcher Dropdown -->
+      <div class="relative">
+        <button onclick="toggleDropdown('project-menu')" id="project-menu-btn" class="flex items-center gap-2 text-sm bg-surface-900 hover:bg-surface-800 border border-surface-border rounded-lg px-3 py-1.5 transition-colors">
+          <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+          <span class="font-semibold text-white">Amul</span>
+          <span class="text-xs text-slate-500 font-mono">amul.com</span>
+          <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 ml-1"></i>
+        </button>
+
+        <!-- Project Menu Dropdown -->
+        <div id="project-menu" class="hidden absolute top-full left-0 mt-1.5 w-64 bg-surface-850 border border-surface-border rounded-xl shadow-2xl z-50 p-1.5 space-y-1">
+          <div class="px-3 py-1.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Active Projects</div>
+          
+          <button class="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-blue-500/10 border border-blue-500/20 text-xs font-semibold text-white">
+            <span class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+              Amul
+            </span>
+            <span class="text-[10px] text-slate-400 font-mono">amul.com</span>
+          </button>
+
+          <button class="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-surface-800 text-xs text-slate-300 transition-colors">
+            <span class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-slate-500"></span>
+              boAt Lifestyle
+            </span>
+            <span class="text-[10px] text-slate-500 font-mono">boat-lifestyle.com</span>
+          </button>
+
+          <div class="border-t border-surface-border my-1"></div>
+
+          <button onclick="openModal('new-project-modal')" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-blue-600 hover:text-white text-xs font-semibold text-blue-400 transition-colors">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+            <span>Add New Brand Project</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Landing Page Toggle Button -->
+      <button onclick="toggleView()" id="view-toggle-btn" class="text-xs px-2.5 py-1.5 rounded-lg bg-surface-900 hover:bg-surface-800 border border-surface-border text-slate-300 flex items-center gap-1.5 transition-colors">
+        <i data-lucide="home" class="w-3.5 h-3.5 text-blue-400"></i>
+        <span id="view-toggle-text">Landing View</span>
+      </button>
+    </div>
+
+    <!-- Execution Control Center (Custom Dark Dropdowns — Zero White Borders) -->
+    <div class="flex items-center gap-3">
+      
+      <!-- Custom Model Dropdown -->
+      <div class="relative">
+        <button onclick="toggleDropdown('model-menu')" class="flex items-center gap-2 text-xs bg-surface-900 hover:bg-surface-800 border border-surface-border rounded-lg px-2.5 py-1.5 transition-colors">
+          <i data-lucide="cpu" class="w-3.5 h-3.5 text-slate-400"></i>
+          <span class="text-slate-400">Model:</span>
+          <span id="selected-model-text" class="text-white font-mono font-medium">openai/gpt-4o-mini</span>
+          <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 ml-0.5"></i>
+        </button>
+
+        <div id="model-menu" class="hidden absolute top-full right-0 mt-1.5 w-60 bg-surface-850 border border-surface-border rounded-xl shadow-2xl z-50 p-1 space-y-0.5">
+          <button onclick="selectModel('openai/gpt-4o-mini')" class="w-full text-left px-3 py-1.5 rounded-lg text-xs font-mono text-white bg-blue-500/10 border border-blue-500/20">openai/gpt-4o-mini</button>
+          <button onclick="selectModel('google/gemini-2.5-flash')" class="w-full text-left px-3 py-1.5 rounded-lg text-xs font-mono text-slate-300 hover:bg-surface-800">google/gemini-2.5-flash</button>
+          <button onclick="selectModel('anthropic/claude-3.5-haiku')" class="w-full text-left px-3 py-1.5 rounded-lg text-xs font-mono text-slate-300 hover:bg-surface-800">anthropic/claude-3.5-haiku</button>
+          <button onclick="selectModel('meta-llama/llama-3.3-70b')" class="w-full text-left px-3 py-1.5 rounded-lg text-xs font-mono text-slate-300 hover:bg-surface-800">meta-llama/llama-3.3-70b</button>
+        </div>
+      </div>
+
+      <!-- Custom Rounds Dropdown -->
+      <div class="relative">
+        <button onclick="toggleDropdown('rounds-menu')" class="flex items-center gap-2 text-xs bg-surface-900 hover:bg-surface-800 border border-surface-border rounded-lg px-2.5 py-1.5 transition-colors">
+          <i data-lucide="repeat" class="w-3.5 h-3.5 text-slate-400"></i>
+          <span class="text-slate-400">Rounds:</span>
+          <span id="selected-rounds-text" class="text-white font-mono font-medium">1 Round</span>
+          <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 ml-0.5"></i>
+        </button>
+
+        <div id="rounds-menu" class="hidden absolute top-full right-0 mt-1.5 w-32 bg-surface-850 border border-surface-border rounded-xl shadow-2xl z-50 p-1 space-y-0.5">
+          <button onclick="selectRounds('1 Round')" class="w-full text-left px-3 py-1.5 rounded-lg text-xs font-mono text-white bg-blue-500/10 border border-blue-500/20">1 Round</button>
+          <button onclick="selectRounds('2 Rounds')" class="w-full text-left px-3 py-1.5 rounded-lg text-xs font-mono text-slate-300 hover:bg-surface-800">2 Rounds</button>
+          <button onclick="selectRounds('3 Rounds')" class="w-full text-left px-3 py-1.5 rounded-lg text-xs font-mono text-slate-300 hover:bg-surface-800">3 Rounds</button>
+        </div>
+      </div>
+
+      <button class="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition-colors shadow-blue-600/20">
+        <i data-lucide="play" class="w-3.5 h-3.5 fill-current"></i>
+        <span>Run Tracking Batch</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- VIEW 1: LANDING / GET STARTED PAGE (Initially Hidden) -->
+  <section id="view-landing" class="hidden max-w-5xl mx-auto p-8 my-auto space-y-12">
+    <div class="text-center space-y-4 max-w-2xl mx-auto pt-8">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-xs font-sans font-medium text-blue-400">
+        <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Generative Engine Optimization Intelligence
+      </div>
+      <h1 class="text-4xl font-extrabold text-white tracking-tight leading-tight">
+        Track How Search-Grounded AI Recommends and Cites Your Brand
+      </h1>
+      <p class="text-sm text-slate-400 leading-relaxed">
+        Monitor AI answers across ChatGPT, Gemini, and Claude. Detect brand mentions, measure citation grounding on your official domain, and identify which competitors and aggregators are capturing your referral traffic.
+      </p>
+      <div class="pt-2 flex items-center justify-center gap-4">
+        <button onclick="openModal('new-project-modal')" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm px-6 py-2.5 rounded-xl shadow-lg shadow-blue-600/30 transition-all flex items-center gap-2">
+          <span>Get Started — Track Your Brand</span>
+          <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </button>
+        <button onclick="showView('dashboard')" class="bg-surface-850 hover:bg-surface-800 border border-surface-border text-slate-300 text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors">
+          View Demo Dashboard (Amul)
+        </button>
+      </div>
+    </div>
+
+    <!-- 3 Core Feature Pillars -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
+      <div class="bg-surface-850 border border-surface-border rounded-2xl p-5 space-y-3">
+        <div class="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center font-bold">
+          <i data-lucide="search" class="w-5 h-5"></i>
+        </div>
+        <h3 class="text-base font-bold text-white">Search Grounding Audit</h3>
+        <p class="text-xs text-slate-400 leading-relaxed">
+          Executes multi-step web searches via Tavily to inspect every query and verify which URLs actually ground the LLM's final response.
+        </p>
+      </div>
+
+      <div class="bg-surface-850 border border-surface-border rounded-2xl p-5 space-y-3">
+        <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
+          <i data-lucide="shield-check" class="w-5 h-5"></i>
+        </div>
+        <h3 class="text-base font-bold text-white">Mention vs Citation Gap</h3>
+        <p class="text-xs text-slate-400 leading-relaxed">
+          Reveals whether your brand is merely talked about from 3rd-party review blogs or if your official website is cited as the primary authority.
+        </p>
+      </div>
+
+      <div class="bg-surface-850 border border-surface-border rounded-2xl p-5 space-y-3">
+        <div class="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center font-bold">
+          <i data-lucide="wand-2" class="w-5 h-5"></i>
+        </div>
+        <h3 class="text-base font-bold text-white">Brand-Aware Prompt Creator</h3>
+        <p class="text-xs text-slate-400 leading-relaxed">
+          Discovers organic consumer search queries tailored to your brand's market strengths without ever biasing the search with brand name keywords.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- VIEW 2: ACTIVE PROJECT DASHBOARD -->
+  <main id="view-dashboard" class="flex-1 max-w-7xl w-full mx-auto p-6 space-y-6">
+
+    <!-- 4 Diagnostic KPI Header Cards (Compact & Sleek) -->
+    <section class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      
+      <!-- Card 1: AI Mention Visibility -->
+      <div class="bg-surface-850 border border-surface-border rounded-xl p-3.5 flex flex-col justify-between">
+        <div class="flex items-center justify-between text-xs text-slate-400 mb-1">
+          <span class="font-medium text-slate-300">AI Mention Visibility</span>
+          <span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-mono text-[10px] border border-emerald-500/20">5/5 Prompts</span>
+        </div>
+        <div class="flex items-baseline gap-2 my-1">
+          <span class="text-2xl font-bold text-white tracking-tight">100.0%</span>
+          <span class="text-xs text-emerald-400 font-medium flex items-center">
+            <i data-lucide="trending-up" class="w-3.5 h-3.5 mr-0.5"></i> High Share
+          </span>
+        </div>
+        <p class="text-xs text-slate-400 mt-1 truncate">Amul explicitly recommended in all 5 test questions</p>
+      </div>
+
+      <!-- Card 2: Target Domain Citations -->
+      <div class="bg-surface-850 border border-amber-500/30 rounded-xl p-3.5 flex flex-col justify-between relative overflow-hidden bg-gradient-to-b from-amber-500/5 to-transparent">
+        <div class="flex items-center justify-between text-xs text-slate-400 mb-1">
+          <span class="font-medium text-amber-200">Target Domain Citations</span>
+          <span class="px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 font-mono text-[10px] border border-amber-500/20">amul.com</span>
+        </div>
+        <div class="flex items-baseline gap-2 my-1">
+          <span class="text-2xl font-bold text-amber-300 tracking-tight">0.0%</span>
+          <span class="text-xs text-amber-400 font-medium">0 of 5 cited</span>
+        </div>
+        <div class="flex items-center gap-1.5 text-xs text-amber-200/80 mt-1 truncate">
+          <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
+          <span class="truncate">All citation traffic captured by aggregators</span>
+        </div>
+      </div>
+
+      <!-- Card 3: Target Sentiment Score -->
+      <div class="bg-surface-850 border border-surface-border rounded-xl p-3.5 flex flex-col justify-between">
+        <div class="flex items-center justify-between text-xs text-slate-400 mb-1">
+          <span class="font-medium text-slate-300">Target Sentiment</span>
+          <span class="text-xs text-slate-400 font-mono">5 evaluations</span>
+        </div>
+        <div class="flex items-baseline gap-2 my-1">
+          <span class="text-2xl font-bold text-white tracking-tight">100%</span>
+          <span class="text-xs text-emerald-400 font-medium">Positive</span>
+        </div>
+        <div class="w-full bg-surface-800 h-1.5 rounded-full mt-2 overflow-hidden flex">
+          <div class="bg-emerald-500 h-full w-full" title="100% Positive"></div>
+        </div>
+      </div>
+
+      <!-- Card 4: Top Detected Competitor -->
+      <div class="bg-surface-850 border border-surface-border rounded-xl p-3.5 flex flex-col justify-between">
+        <div class="flex items-center justify-between text-xs text-slate-400 mb-1">
+          <span class="font-medium text-slate-300">Top Detected Competitor</span>
+          <span class="text-xs text-slate-400 font-mono">8 Competitors</span>
+        </div>
+        <div class="flex items-baseline gap-2 my-1">
+          <span class="text-xl font-bold text-white tracking-tight truncate">Mother Dairy</span>
+          <span class="text-xs text-slate-400 font-mono">3 runs</span>
+        </div>
+        <p class="text-xs text-slate-400 mt-1 truncate">Most detected rival across AI responses</p>
+      </div>
+
+    </section>
+
+    <!-- Navigation Tabs -->
+    <nav class="flex items-center gap-2 border-b border-surface-border text-sm">
+      <button onclick="switchTab('explorer')" id="tab-btn-explorer" class="tab-btn px-4 py-2.5 font-semibold text-white border-b-2 border-blue-500 flex items-center gap-2">
+        <i data-lucide="layout-list" class="w-4 h-4"></i>
+        <span>Prompts & Grounding Explorer</span>
+      </button>
+
+      <button onclick="switchTab('citations')" id="tab-btn-citations" class="tab-btn px-4 py-2.5 font-medium text-slate-400 hover:text-slate-200 border-b-2 border-transparent flex items-center gap-2 transition-colors">
+        <i data-lucide="network" class="w-4 h-4"></i>
+        <span>Citation & Competitor Audit</span>
+      </button>
+
+      <button onclick="switchTab('generator')" id="tab-btn-generator" class="tab-btn px-4 py-2.5 font-medium text-slate-400 hover:text-slate-200 border-b-2 border-transparent flex items-center gap-2 transition-colors">
+        <i data-lucide="sparkles" class="w-4 h-4 text-blue-400"></i>
+        <span>AI Prompt Creator</span>
+      </button>
+    </nav>
+
+    <!-- TAB 1: Prompts & Grounding Explorer -->
+    <section id="tab-explorer" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      
+      <!-- Prompt List (Left Column) with Top Pagination ONLY -->
+      <div class="lg:col-span-5 bg-surface-850 border border-surface-border rounded-xl p-4 flex flex-col space-y-3">
+        
+        <!-- Header & Quick Top Pagination -->
+        <div class="flex items-center justify-between pb-2 border-b border-surface-border text-xs">
+          <div>
+            <span class="font-bold text-white">Tracked Prompts</span>
+            <span class="text-slate-500 text-[11px] ml-1">(5 Active)</span>
+          </div>
+          <div class="flex items-center gap-1.5 font-mono text-[11px] text-slate-400">
+            <span>Page 1 of 1</span>
+            <button class="w-5 h-5 rounded flex items-center justify-center bg-surface-900 border border-surface-border hover:bg-surface-800 text-slate-500 disabled:opacity-40" disabled>
+              <i data-lucide="chevron-left" class="w-3 h-3"></i>
+            </button>
+            <button class="w-5 h-5 rounded flex items-center justify-center bg-surface-900 border border-surface-border hover:bg-surface-800 text-slate-500 disabled:opacity-40" disabled>
+              <i data-lucide="chevron-right" class="w-3 h-3"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Prompt Cards Stack (5 Completed Prompts) -->
+        <div class="space-y-2.5">
+
+          <!-- Prompt 1 (Active) -->
+          <div onclick="selectPrompt(1)" id="p-card-1" class="prompt-item cursor-pointer p-3.5 rounded-lg border border-blue-500/50 bg-blue-500/10 transition-all">
+            <div class="flex items-center justify-between text-xs mb-1">
+              <span class="font-bold text-white font-mono text-[11px] px-2 py-0.5 rounded bg-surface-900 border border-surface-border">Prompt 1</span>
+              <span class="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-medium text-[10px] flex items-center gap-1">
+                <i data-lucide="check-circle" class="w-3 h-3"></i> Mentioned
+              </span>
+            </div>
+            <h4 class="text-xs font-semibold text-white leading-snug">Which butter brand is best for everyday cooking in India?</h4>
+            <div class="flex items-center gap-3 mt-2 text-[11px] text-slate-400 font-mono">
+              <span><strong class="text-slate-200">4</strong> mentions</span>
+              <span><strong class="text-slate-200">5</strong> cited</span>
+              <span><strong class="text-slate-200">35s</strong></span>
+            </div>
+          </div>
+
+          <!-- Prompt 2 -->
+          <div onclick="selectPrompt(2)" id="p-card-2" class="prompt-item cursor-pointer p-3.5 rounded-lg border border-surface-border bg-surface-900 hover:border-slate-700 transition-all">
+            <div class="flex items-center justify-between text-xs mb-1">
+              <span class="font-bold text-slate-300 font-mono text-[11px] px-2 py-0.5 rounded bg-surface-800 border border-surface-border">Prompt 2</span>
+              <span class="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-medium text-[10px] flex items-center gap-1">
+                <i data-lucide="check-circle" class="w-3 h-3"></i> Mentioned
+              </span>
+            </div>
+            <h4 class="text-xs font-semibold text-slate-200 leading-snug">What is the most popular ice cream brand in India right now?</h4>
+            <div class="flex items-center gap-3 mt-2 text-[11px] text-slate-400 font-mono">
+              <span><strong class="text-slate-200">2</strong> mentions</span>
+              <span><strong class="text-slate-200">3</strong> cited</span>
+              <span><strong class="text-slate-200">21s</strong></span>
+            </div>
+          </div>
+
+          <!-- Prompt 3 -->
+          <div onclick="selectPrompt(3)" id="p-card-3" class="prompt-item cursor-pointer p-3.5 rounded-lg border border-surface-border bg-surface-900 hover:border-slate-700 transition-all">
+            <div class="flex items-center justify-between text-xs mb-1">
+              <span class="font-bold text-slate-300 font-mono text-[11px] px-2 py-0.5 rounded bg-surface-800 border border-surface-border">Prompt 3</span>
+              <span class="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-medium text-[10px] flex items-center gap-1">
+                <i data-lucide="check-circle" class="w-3 h-3"></i> Mentioned
+              </span>
+            </div>
+            <h4 class="text-xs font-semibold text-slate-200 leading-snug">Which Indian dairy brand is most trusted for milk and milk products?</h4>
+            <div class="flex items-center gap-3 mt-2 text-[11px] text-slate-400 font-mono">
+              <span><strong class="text-slate-200">3</strong> mentions</span>
+              <span><strong class="text-slate-200">6</strong> cited</span>
+              <span><strong class="text-slate-200">24s</strong></span>
+            </div>
+          </div>
+
+          <!-- Prompt 4 -->
+          <div onclick="selectPrompt(4)" id="p-card-4" class="prompt-item cursor-pointer p-3.5 rounded-lg border border-surface-border bg-surface-900 hover:border-slate-700 transition-all">
+            <div class="flex items-center justify-between text-xs mb-1">
+              <span class="font-bold text-slate-300 font-mono text-[11px] px-2 py-0.5 rounded bg-surface-800 border border-surface-border">Prompt 4</span>
+              <span class="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-medium text-[10px] flex items-center gap-1">
+                <i data-lucide="check-circle" class="w-3 h-3"></i> Mentioned
+              </span>
+            </div>
+            <h4 class="text-xs font-semibold text-slate-200 leading-snug">Best paneer brand available in Indian supermarkets in 2026?</h4>
+            <div class="flex items-center gap-3 mt-2 text-[11px] text-slate-400 font-mono">
+              <span><strong class="text-slate-200">1</strong> mention</span>
+              <span><strong class="text-slate-200">8</strong> cited</span>
+              <span><strong class="text-slate-200">28s</strong></span>
+            </div>
+          </div>
+
+          <!-- Prompt 5 -->
+          <div onclick="selectPrompt(5)" id="p-card-5" class="prompt-item cursor-pointer p-3.5 rounded-lg border border-surface-border bg-surface-900 hover:border-slate-700 transition-all">
+            <div class="flex items-center justify-between text-xs mb-1">
+              <span class="font-bold text-slate-300 font-mono text-[11px] px-2 py-0.5 rounded bg-surface-800 border border-surface-border">Prompt 5</span>
+              <span class="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-medium text-[10px] flex items-center gap-1">
+                <i data-lucide="check-circle" class="w-3 h-3"></i> Mentioned
+              </span>
+            </div>
+            <h4 class="text-xs font-semibold text-slate-200 leading-snug">Which cheese brand do professional chefs in India prefer?</h4>
+            <div class="flex items-center gap-3 mt-2 text-[11px] text-slate-400 font-mono">
+              <span><strong class="text-slate-200">1</strong> mention</span>
+              <span><strong class="text-slate-200">7</strong> cited</span>
+              <span><strong class="text-slate-200">27s</strong></span>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Prompt Detail Pane (Right Column) -->
+      <div class="lg:col-span-7 bg-surface-850 border border-surface-border rounded-xl p-5 space-y-4">
+        
+        <!-- Header & Prompt Metrics Mini-Strip -->
+        <div class="border-b border-surface-border pb-3.5 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-mono font-bold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2.5 py-1 rounded">Prompt 1 Execution</span>
+              <span class="text-xs text-slate-400 font-mono">openai/gpt-4o-mini</span>
+            </div>
+            <span class="text-xs px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-semibold flex items-center gap-1">
+              <i data-lucide="smile" class="w-3.5 h-3.5"></i> Positive Sentiment
+            </span>
+          </div>
+
+          <h3 id="detail-prompt-title" class="text-sm font-bold text-white">
+            "Which butter brand is best for everyday cooking in India?"
+          </h3>
+
+          <!-- Prompt Level 4-Stat Strip -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+            <!-- Box 1: Target Mentions -->
+            <div class="bg-surface-900 border border-surface-border rounded-lg p-3 min-w-0 flex flex-col justify-between">
+              <span class="text-slate-400 text-[10px] uppercase font-semibold tracking-wider truncate block">Target Mentions</span>
+              <span class="text-xl font-bold font-sans text-emerald-400 mt-1 block">4</span>
+            </div>
+
+            <!-- Box 2: Target Cited -->
+            <div class="bg-surface-900 border border-surface-border rounded-lg p-3 min-w-0 flex flex-col justify-between">
+              <span class="text-slate-400 text-[10px] uppercase font-semibold tracking-wider truncate block">Target Cited</span>
+              <span class="text-xl font-bold font-sans text-rose-500 mt-1 block">0</span>
+            </div>
+
+            <!-- Box 3: Total Citations -->
+            <div class="bg-surface-900 border border-surface-border rounded-lg p-3 min-w-0 flex flex-col justify-between">
+              <span class="text-slate-400 text-[10px] uppercase font-semibold tracking-wider truncate block">Total Citations</span>
+              <span class="text-xl font-bold font-sans text-white mt-1 block">5</span>
+            </div>
+
+            <!-- Box 4: Top Competitor -->
+            <div class="bg-surface-900 border border-surface-border rounded-lg p-3 min-w-0 flex flex-col justify-between">
+              <span class="text-slate-400 text-[10px] uppercase font-semibold tracking-wider truncate block">Top Competitor</span>
+              <div class="flex items-baseline justify-between gap-1 text-sm font-bold font-sans text-white mt-1 truncate">
+                <span class="truncate">Mother Dairy</span>
+                <span class="text-xs text-slate-400 font-normal shrink-0">3 runs</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Grounding Search Queries Generated -->
+        <div class="space-y-1.5">
+          <span class="text-[11px] font-semibold text-slate-300 uppercase tracking-wider block">Agent Web Search Queries (3 Required)</span>
+          <div class="flex flex-wrap gap-1.5">
+            <span class="text-[11px] px-2.5 py-1 bg-surface-900 border border-surface-border rounded font-mono text-slate-300 flex items-center gap-1.5">
+              <i data-lucide="search" class="w-3 h-3 text-slate-500"></i> best butter brand for everyday cooking in India 2026
+            </span>
+            <span class="text-[11px] px-2.5 py-1 bg-surface-900 border border-surface-border rounded font-mono text-slate-300 flex items-center gap-1.5">
+              <i data-lucide="search" class="w-3 h-3 text-slate-500"></i> Amul butter India 2026 review
+            </span>
+            <span class="text-[11px] px-2.5 py-1 bg-surface-900 border border-surface-border rounded font-mono text-slate-300 flex items-center gap-1.5">
+              <i data-lucide="search" class="w-3 h-3 text-slate-500"></i> President butter India 2026 review
+            </span>
+          </div>
+        </div>
+
+        <!-- Full AI Generated Answer Box (Scrollable with Custom Scrollbar) -->
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-semibold text-slate-300 uppercase tracking-wider">Full AI Generated Response</span>
+            <span class="text-[10px] text-slate-400 font-mono">Scrollable view</span>
+          </div>
+          <div class="bg-surface-900 border border-surface-border rounded-lg p-4 text-xs leading-relaxed space-y-2.5 text-slate-300 max-h-52 overflow-y-auto custom-scrollbar">
+            <p>In India, several butter brands stand out for everyday cooking, particularly <strong class="text-white bg-blue-500/20 px-1 py-0.5 rounded border border-blue-500/30">Amul</strong> and <strong class="text-white">President Butter</strong>.</p>
+            
+            <p><strong class="text-white">1. Amul Butter:</strong> Amul is a household name in India, known for its rich flavor and creamy texture. It has a longstanding reputation and is considered a staple in Indian kitchens for frying, baking, and spreading on rotis and parathas <span class="text-blue-400 font-mono font-bold bg-blue-500/20 px-1.5 py-0.5 rounded border border-blue-500/30">[1]</span>.</p>
+            
+            <p><strong class="text-white">2. President Butter:</strong> Originating from France but widely available in India, President offers a gourmet alternative with higher butterfat content, favored by chefs for pastry and sautéing <span class="text-blue-400 font-mono font-bold bg-blue-500/20 px-1.5 py-0.5 rounded border border-blue-500/30">[3]</span>.</p>
+            
+            <p><strong class="text-white">3. Mother Dairy Butter:</strong> Particularly popular in Northern India, Mother Dairy produces a well-regarded table butter made from cow and buffalo milk, offering a traditional taste for cooking and spreads <span class="text-blue-400 font-mono font-bold bg-blue-500/20 px-1.5 py-0.5 rounded border border-blue-500/30">[7]</span>.</p>
+
+            <p><strong class="text-white">4. Gowardhan Butter:</strong> Known for its pure cow milk products, Gowardhan butter has a distinct golden hue and rich aroma that enhances curries, parathas, and baking <span class="text-blue-400 font-mono font-bold bg-blue-500/20 px-1.5 py-0.5 rounded border border-blue-500/30">[7]</span>.</p>
+
+            <p><strong class="text-white">5. Britannia Butter:</strong> A reliable, widely available brand with a slightly milder salt profile, suitable for sandwiches and light sautéing <span class="text-blue-400 font-mono font-bold bg-blue-500/20 px-1.5 py-0.5 rounded border border-blue-500/30">[9]</span>.</p>
+
+            <div class="pt-2 border-t border-surface-border text-[11px] font-mono text-slate-400">
+              CITED: 1, 3, 7, 9, 12
+            </div>
+          </div>
+        </div>
+
+        <!-- Exact Cited Sources Table (Tavily Score Verified) -->
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-semibold text-slate-300 uppercase tracking-wider">All 5 Cited Sources for this Prompt</span>
+            <span class="text-[10px] text-slate-400 font-mono">Tavily Relevance Score</span>
+          </div>
+
+          <div class="border border-surface-border rounded-lg overflow-hidden max-h-44 overflow-y-auto custom-scrollbar">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-surface-800 text-slate-400 border-b border-surface-border sticky top-0 z-10">
+                <tr>
+                  <th class="py-2 px-3 font-medium">Ref</th>
+                  <th class="py-2 px-3 font-medium">Domain</th>
+                  <th class="py-2 px-3 font-medium">Article Title & URL</th>
+                  <th class="py-2 px-3 font-medium text-right">Tavily Score</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-surface-border text-slate-300">
+                <tr class="hover:bg-surface-800/40">
+                  <td class="py-2 px-3 font-mono text-blue-400 font-bold">[1]</td>
+                  <td class="py-2 px-3 font-mono text-white font-medium">restaurantindia.in</td>
+                  <td class="py-2 px-3 truncate max-w-xs text-slate-300">
+                    <div class="font-medium text-white truncate">Top Butter Brands in India: Best Picks for Everyday Cooking</div>
+                    <div class="text-[10px] text-slate-500 truncate font-mono">restaurantindia.in/article/top-butter-brands...</div>
+                  </td>
+                  <td class="py-2 px-3 text-right font-mono text-emerald-400 font-semibold">0.922</td>
+                </tr>
+                <tr class="hover:bg-surface-800/40">
+                  <td class="py-2 px-3 font-mono text-blue-400 font-bold">[3]</td>
+                  <td class="py-2 px-3 font-mono text-white font-medium">cashkaro.com</td>
+                  <td class="py-2 px-3 truncate max-w-xs text-slate-300">
+                    <div class="font-medium text-white truncate">Best Butter Brands in India for Taste and Nutrition Review</div>
+                    <div class="text-[10px] text-slate-500 truncate font-mono">cashkaro.com/blog/best-butter-brands-india</div>
+                  </td>
+                  <td class="py-2 px-3 text-right font-mono text-emerald-400 font-semibold">0.894</td>
+                </tr>
+                <tr class="hover:bg-surface-800/40">
+                  <td class="py-2 px-3 font-mono text-blue-400 font-bold">[7]</td>
+                  <td class="py-2 px-3 font-mono text-white font-medium">expertmarketresearch.com</td>
+                  <td class="py-2 px-3 truncate max-w-xs text-slate-300">
+                    <div class="font-medium text-white truncate">Indian Butter Industry Report & Market Share Overview 2026</div>
+                    <div class="text-[10px] text-slate-500 truncate font-mono">expertmarketresearch.com/reports/indian-butter-market</div>
+                  </td>
+                  <td class="py-2 px-3 text-right font-mono text-emerald-400 font-semibold">0.865</td>
+                </tr>
+                <tr class="hover:bg-surface-800/40">
+                  <td class="py-2 px-3 font-mono text-blue-400 font-bold">[9]</td>
+                  <td class="py-2 px-3 font-mono text-white font-medium">consumer-voice.org</td>
+                  <td class="py-2 px-3 truncate max-w-xs text-slate-300">
+                    <div class="font-medium text-white truncate">Comparative Test: Table Butter Quality & Purity Analysis</div>
+                    <div class="text-[10px] text-slate-500 truncate font-mono">consumer-voice.org/butter-test-results</div>
+                  </td>
+                  <td class="py-2 px-3 text-right font-mono text-emerald-400 font-semibold">0.812</td>
+                </tr>
+                <tr class="hover:bg-surface-800/40">
+                  <td class="py-2 px-3 font-mono text-blue-400 font-bold">[12]</td>
+                  <td class="py-2 px-3 font-mono text-white font-medium">mishry.com</td>
+                  <td class="py-2 px-3 truncate max-w-xs text-slate-300">
+                    <div class="font-medium text-white truncate">Mishry Review: The Tastiest Butter for Everyday Indian Cooking</div>
+                    <div class="text-[10px] text-slate-500 truncate font-mono">mishry.com/reviews/everyday-butter-india</div>
+                  </td>
+                  <td class="py-2 px-3 text-right font-mono text-emerald-400 font-semibold">0.795</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Target Brand Mentions Extracted -->
+        <div class="space-y-1.5">
+          <span class="text-[11px] font-semibold text-slate-300 uppercase tracking-wider block">Target Brand Mentions Extracted (Amul)</span>
+          <div class="space-y-1 text-xs">
+            <div class="p-2 rounded bg-surface-900 border border-surface-border text-slate-300 font-sans">
+              <span class="font-mono text-emerald-400 font-bold mr-1.5">[Amul]</span>
+              "...particularly <strong>Amul</strong> and President Butter."
+            </div>
+            <div class="p-2 rounded bg-surface-900 border border-surface-border text-slate-300 font-sans">
+              <span class="font-mono text-emerald-400 font-bold mr-1.5">[Amul]</span>
+              "1. <strong>Amul Butter:</strong> Amul is a household name in India, known for its rich flavor and creamy texture."
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- TAB 2: Citation & Competitor Audit -->
+    <section id="tab-citations" class="hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Competitor Audit: Pre-configured + AI-Discovered Merged Table -->
+        <div class="lg:col-span-6 bg-surface-850 border border-surface-border rounded-xl p-5 space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-bold text-white">Competitor Share of Voice</h3>
+              <p class="text-xs text-slate-400">Combines user-configured rivals with new competitors discovered by AI</p>
+            </div>
+            <span class="text-xs font-mono bg-surface-800 px-2 py-1 rounded text-slate-300">8 Tracked</span>
+          </div>
+
+          <div class="border border-surface-border rounded-lg overflow-hidden">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-surface-800 text-slate-400 border-b border-surface-border">
+                <tr>
+                  <th class="py-2.5 px-3">Competitor Brand</th>
+                  <th class="py-2.5 px-3">Discovery Source</th>
+                  <th class="py-2.5 px-3 text-right">Mention Count</th>
+                  <th class="py-2.5 px-3 text-right">Mention Frequency</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-surface-border text-slate-300">
+                <tr class="bg-blue-500/5">
+                  <td class="py-2.5 px-3 font-semibold text-white flex items-center gap-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Amul (Target)
+                  </td>
+                  <td class="py-2.5 px-3">
+                    <span class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-blue-500/10 text-blue-400 border border-blue-500/20">Target Brand</span>
+                  </td>
+                  <td class="py-2.5 px-3 text-right font-mono text-white">5 runs</td>
+                  <td class="py-2.5 px-3 text-right font-mono font-bold text-emerald-400">100.0%</td>
+                </tr>
+                <tr>
+                  <td class="py-2.5 px-3 font-medium text-white">Mother Dairy</td>
+                  <td class="py-2.5 px-3">
+                    <span class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-surface-800 text-slate-300 border border-surface-border">Pre-configured</span>
+                  </td>
+                  <td class="py-2.5 px-3 text-right font-mono text-slate-300">3 runs</td>
+                  <td class="py-2.5 px-3 text-right font-mono text-blue-400 font-semibold">60.0%</td>
+                </tr>
+                <tr>
+                  <td class="py-2.5 px-3 font-medium text-white">Britannia</td>
+                  <td class="py-2.5 px-3">
+                    <span class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-purple-500/10 text-purple-300 border border-purple-500/20">AI Discovered</span>
+                  </td>
+                  <td class="py-2.5 px-3 text-right font-mono text-slate-300">2 runs</td>
+                  <td class="py-2.5 px-3 text-right font-mono text-blue-400 font-semibold">40.0%</td>
+                </tr>
+                <tr>
+                  <td class="py-2.5 px-3 font-medium text-white">Gowardhan</td>
+                  <td class="py-2.5 px-3">
+                    <span class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-purple-500/10 text-purple-300 border border-purple-500/20">AI Discovered</span>
+                  </td>
+                  <td class="py-2.5 px-3 text-right font-mono text-slate-300">2 runs</td>
+                  <td class="py-2.5 px-3 text-right font-mono text-blue-400 font-semibold">40.0%</td>
+                </tr>
+                <tr>
+                  <td class="py-2.5 px-3 font-medium text-white">Nandini</td>
+                  <td class="py-2.5 px-3">
+                    <span class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-surface-800 text-slate-300 border border-surface-border">Pre-configured</span>
+                  </td>
+                  <td class="py-2.5 px-3 text-right font-mono text-slate-300">2 runs</td>
+                  <td class="py-2.5 px-3 text-right font-mono text-blue-400 font-semibold">40.0%</td>
+                </tr>
+                <tr>
+                  <td class="py-2.5 px-3 font-medium text-white">President Butter</td>
+                  <td class="py-2.5 px-3">
+                    <span class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-purple-500/10 text-purple-300 border border-purple-500/20">AI Discovered</span>
+                  </td>
+                  <td class="py-2.5 px-3 text-right font-mono text-slate-300">1 run</td>
+                  <td class="py-2.5 px-3 text-right font-mono text-slate-400">20.0%</td>
+                </tr>
+                <tr class="opacity-60">
+                  <td class="py-2.5 px-3 font-medium text-slate-400">Verka</td>
+                  <td class="py-2.5 px-3">
+                    <span class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-surface-800 text-slate-400 border border-surface-border">Pre-configured</span>
+                  </td>
+                  <td class="py-2.5 px-3 text-right font-mono text-slate-500">0 runs</td>
+                  <td class="py-2.5 px-3 text-right font-mono text-slate-500">0.0% (Not detected)</td>
+                </tr>
+                <tr class="opacity-60">
+                  <td class="py-2.5 px-3 font-medium text-slate-400">Milma</td>
+                  <td class="py-2.5 px-3">
+                    <span class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-surface-800 text-slate-400 border border-surface-border">Pre-configured</span>
+                  </td>
+                  <td class="py-2.5 px-3 text-right font-mono text-slate-500">0 runs</td>
+                  <td class="py-2.5 px-3 text-right font-mono text-slate-500">0.0% (Not detected)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Domain Citation Audit Table -->
+        <div class="lg:col-span-6 bg-surface-850 border border-surface-border rounded-xl p-5 space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-bold text-white">Domain Citation Audit</h3>
+              <p class="text-xs text-slate-400">Domains sorted strictly by actual citation count in AI search responses</p>
+            </div>
+            <span class="text-xs font-mono bg-surface-800 px-2 py-1 rounded text-slate-300">69 Domains Audited</span>
+          </div>
+
+          <div class="border border-surface-border rounded-lg overflow-hidden">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-surface-800 text-slate-400 border-b border-surface-border">
+                <tr>
+                  <th class="py-2.5 px-3">Domain</th>
+                  <th class="py-2.5 px-3 text-right">Retrieved</th>
+                  <th class="py-2.5 px-3 text-right">Cited</th>
+                  <th class="py-2.5 px-3 text-right">Citation Rate</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-surface-border text-slate-300">
+                <tr>
+                  <td class="py-2.5 px-3 font-mono font-medium text-white">cashkaro.com</td>
+                  <td class="py-2.5 px-3 text-right font-mono">4</td>
+                  <td class="py-2.5 px-3 text-right font-mono text-emerald-400 font-semibold">3</td>
+                  <td class="py-2.5 px-3 text-right font-mono">75.0%</td>
+                </tr>
+                <tr>
+                  <td class="py-2.5 px-3 font-mono font-medium text-white">expertmarketresearch.com</td>
+                  <td class="py-2.5 px-3 text-right font-mono">4</td>
+                  <td class="py-2.5 px-3 text-right font-mono text-emerald-400 font-semibold">3</td>
+                  <td class="py-2.5 px-3 text-right font-mono">75.0%</td>
+                </tr>
+                <tr>
+                  <td class="py-2.5 px-3 font-mono font-medium text-white">restaurantindia.in</td>
+                  <td class="py-2.5 px-3 text-right font-mono">7</td>
+                  <td class="py-2.5 px-3 text-right font-mono text-emerald-400 font-semibold">2</td>
+                  <td class="py-2.5 px-3 text-right font-mono">28.5%</td>
+                </tr>
+                <tr>
+                  <td class="py-2.5 px-3 font-mono font-medium text-white">consumer-voice.org</td>
+                  <td class="py-2.5 px-3 text-right font-mono">2</td>
+                  <td class="py-2.5 px-3 text-right font-mono text-emerald-400 font-semibold">1</td>
+                  <td class="py-2.5 px-3 text-right font-mono">50.0%</td>
+                </tr>
+                <tr class="bg-amber-500/10">
+                  <td class="py-2.5 px-3 font-mono font-bold text-amber-300">amul.com (Target)</td>
+                  <td class="py-2.5 px-3 text-right font-mono text-amber-300">0</td>
+                  <td class="py-2.5 px-3 text-right font-mono text-amber-400 font-bold">0</td>
+                  <td class="py-2.5 px-3 text-right font-mono text-amber-400">0.0%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- TAB 3: AI Prompt Creator (Brand-Driven, No Seed Required) -->
+    <section id="tab-generator" class="hidden space-y-6">
+      
+      <!-- Brand-Aware Action Bar -->
+      <div class="bg-surface-850 border border-surface-border rounded-xl p-5 space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div class="space-y-1">
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              <i data-lucide="sparkles" class="w-4 h-4 text-blue-400"></i>
+              Brand-Aware Prompt Creator for <span class="text-blue-400 font-semibold">Amul</span>
+            </h3>
+            <p class="text-xs text-slate-400 max-w-2xl leading-relaxed">
+              Automatically deduces Amul's industry, category dominance (dairy, butter, ice cream), and competitors to create realistic consumer search questions. <strong>Never mentions "Amul" in the prompt.</strong>
+            </p>
+          </div>
+          <button onclick="generatePromptsMock()" id="btn-generate-prompts" class="shrink-0 whitespace-nowrap bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs py-2.5 px-4 rounded-lg flex items-center gap-2 shadow-sm transition-all shadow-blue-600/20 active:scale-95 cursor-pointer">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+            <span id="generate-btn-text">Generate 10 New Prompts</span>
+          </button>
+        </div>
+
+        <!-- Custom Prompt Input Row -->
+        <div class="pt-3 border-t border-surface-border flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <input id="custom-prompt-input" onkeydown="if(event.key==='Enter') addCustomPrompt()" type="text" placeholder="Or type your own custom prompt here (e.g. Which butter is best for high heat frying in Indian cooking?)" class="flex-1 bg-surface-900 border border-surface-border rounded-lg px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none">
+          <button onclick="addCustomPrompt()" class="shrink-0 whitespace-nowrap bg-surface-800 hover:bg-surface-700 text-slate-200 border border-surface-border px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+            <span>Add Custom Prompt</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Generated Candidates (10 items, Paginated, Default Checked) -->
+      <div class="space-y-3">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <input type="checkbox" id="select-all-checkbox" checked onchange="toggleSelectAll(this)" class="w-4 h-4 rounded border-slate-700 bg-surface-900 text-blue-600 focus:ring-0 cursor-pointer">
+            <label for="select-all-checkbox" class="text-xs font-bold text-slate-300 uppercase tracking-wider cursor-pointer">
+              Select All (10 Prompts)
+            </label>
+            <span class="text-xs text-slate-500 font-mono">Page 1 of 1 · 10 per page</span>
+          </div>
+
+          <button onclick="addSelectedPrompts()" id="bulk-add-btn" class="shrink-0 whitespace-nowrap text-xs bg-blue-600 hover:bg-blue-500 text-white font-semibold px-4 py-2 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-all shadow-blue-600/20 active:scale-95 cursor-pointer">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+            <span id="bulk-add-btn-text">Add 10 Selected Prompts to Project</span>
+          </button>
+        </div>
+
+        <!-- 10 Prompt Cards (Default Checked) -->
+        <div class="space-y-2.5">
+          
+          <div class="bg-surface-850 border border-surface-border rounded-xl p-4 flex items-start gap-4 hover:border-slate-700 transition-all">
+            <input type="checkbox" checked class="variant-chk mt-1 w-4 h-4 rounded border-slate-700 bg-surface-900 text-blue-600 focus:ring-0 cursor-pointer">
+            <div class="flex-1 space-y-1">
+              <div class="flex items-center gap-2">
+                <span class="text-[11px] px-2 py-0.5 rounded bg-surface-800 text-slate-300 font-mono border border-surface-border">Category Comparison</span>
+                <span class="text-[11px] text-slate-500">Everyday Cooking</span>
+              </div>
+              <p class="text-sm font-semibold text-white">"What's the real difference between table butter and cooking butter for everyday Indian recipes?"</p>
+              <p class="text-xs text-slate-400">Rationale: Targets consumers looking for clarity on butter variants. Gives Amul an opportunity to appear in both cooking and table butter.</p>
+            </div>
+          </div>
+
+          <div class="bg-surface-850 border border-surface-border rounded-xl p-4 flex items-start gap-4 hover:border-slate-700 transition-all">
+            <input type="checkbox" checked class="variant-chk mt-1 w-4 h-4 rounded border-slate-700 bg-surface-900 text-blue-600 focus:ring-0 cursor-pointer">
+            <div class="flex-1 space-y-1">
+              <div class="flex items-center gap-2">
+                <span class="text-[11px] px-2 py-0.5 rounded bg-surface-800 text-slate-300 font-mono border border-surface-border">Functional Suitability</span>
+                <span class="text-[11px] text-slate-500">Breakfast & Toast</span>
+              </div>
+              <p class="text-sm font-semibold text-white">"Which butter brand is best for spreading on toast and rotis without tearing?"</p>
+              <p class="text-xs text-slate-400">Rationale: Directly addresses household breakfast spread habits where Amul dominates market mindshare.</p>
+            </div>
+          </div>
+
+          <div class="bg-surface-850 border border-surface-border rounded-xl p-4 flex items-start gap-4 hover:border-slate-700 transition-all">
+            <input type="checkbox" checked class="variant-chk mt-1 w-4 h-4 rounded border-slate-700 bg-surface-900 text-blue-600 focus:ring-0 cursor-pointer">
+            <div class="flex-1 space-y-1">
+              <div class="flex items-center gap-2">
+                <span class="text-[11px] px-2 py-0.5 rounded bg-surface-800 text-slate-300 font-mono border border-surface-border">Value for Money</span>
+                <span class="text-[11px] text-slate-500">Budget Tiers</span>
+              </div>
+              <p class="text-sm font-semibold text-white">"Are cooking butters usually cheaper than table butters, and does it really matter for taste?"</p>
+              <p class="text-xs text-slate-400">Rationale: Explores price vs quality trade-offs in Indian dairy supermarkets.</p>
+            </div>
+          </div>
+
+          <div class="bg-surface-850 border border-surface-border rounded-xl p-4 flex items-start gap-4 hover:border-slate-700 transition-all">
+            <input type="checkbox" checked class="variant-chk mt-1 w-4 h-4 rounded border-slate-700 bg-surface-900 text-blue-600 focus:ring-0 cursor-pointer">
+            <div class="flex-1 space-y-1">
+              <div class="flex items-center gap-2">
+                <span class="text-[11px] px-2 py-0.5 rounded bg-surface-800 text-slate-300 font-mono border border-surface-border">Regional Availability</span>
+                <span class="text-[11px] text-slate-500">Supermarket Access</span>
+              </div>
+              <p class="text-sm font-semibold text-white">"Which fresh milk brand is available across all Indian metro cities consistently?"</p>
+              <p class="text-xs text-slate-400">Rationale: Amul's nationwide cold chain makes it a primary answer to multi-city availability queries.</p>
+            </div>
+          </div>
+
+          <div class="bg-surface-850 border border-surface-border rounded-xl p-4 flex items-start gap-4 hover:border-slate-700 transition-all">
+            <input type="checkbox" checked class="variant-chk mt-1 w-4 h-4 rounded border-slate-700 bg-surface-900 text-blue-600 focus:ring-0 cursor-pointer">
+            <div class="flex-1 space-y-1">
+              <div class="flex items-center gap-2">
+                <span class="text-[11px] px-2 py-0.5 rounded bg-surface-800 text-slate-300 font-mono border border-surface-border">Consumer Trust</span>
+                <span class="text-[11px] text-slate-500">Purity & Testing</span>
+              </div>
+              <p class="text-sm font-semibold text-white">"Which dairy brand in India has the highest consumer trust ratings for packaged ghee?"</p>
+              <p class="text-xs text-slate-400">Rationale: Targets trust and purity tests where cooperative dairy brands rank high.</p>
+            </div>
+          </div>
+
+          <div class="bg-surface-850 border border-surface-border rounded-xl p-4 flex items-start gap-4 hover:border-slate-700 transition-all">
+            <input type="checkbox" checked class="variant-chk mt-1 w-4 h-4 rounded border-slate-700 bg-surface-900 text-blue-600 focus:ring-0 cursor-pointer">
+            <div class="flex-1 space-y-1">
+              <div class="flex items-center gap-2">
+                <span class="text-[11px] px-2 py-0.5 rounded bg-surface-800 text-slate-300 font-mono border border-surface-border">Culinary Performance</span>
+                <span class="text-[11px] text-slate-500">High Heat</span>
+              </div>
+              <p class="text-sm font-semibold text-white">"Can you use salted table butter for tadka, or will it burn too quickly?"</p>
+              <p class="text-xs text-slate-400">Rationale: Common culinary concern in Indian kitchens regarding salted butter fat content.</p>
+            </div>
+          </div>
+
+          <div class="bg-surface-850 border border-surface-border rounded-xl p-4 flex items-start gap-4 hover:border-slate-700 transition-all">
+            <input type="checkbox" checked class="variant-chk mt-1 w-4 h-4 rounded border-slate-700 bg-surface-900 text-blue-600 focus:ring-0 cursor-pointer">
+            <div class="flex-1 space-y-1">
+              <div class="flex items-center gap-2">
+                <span class="text-[11px] px-2 py-0.5 rounded bg-surface-800 text-slate-300 font-mono border border-surface-border">Health & Diet</span>
+                <span class="text-[11px] text-slate-500">Low Sodium</span>
+              </div>
+              <p class="text-sm font-semibold text-white">"What are the healthiest unsalted white butter brands in Indian stores for weight loss?"</p>
+              <p class="text-xs text-slate-400">Rationale: Targets health-conscious consumers exploring white butter vs yellow table butter.</p>
+            </div>
+          </div>
+
+          <div class="bg-surface-850 border border-surface-border rounded-xl p-4 flex items-start gap-4 hover:border-slate-700 transition-all">
+            <input type="checkbox" checked class="variant-chk mt-1 w-4 h-4 rounded border-slate-700 bg-surface-900 text-blue-600 focus:ring-0 cursor-pointer">
+            <div class="flex-1 space-y-1">
+              <div class="flex items-center gap-2">
+                <span class="text-[11px] px-2 py-0.5 rounded bg-surface-800 text-slate-300 font-mono border border-surface-border">Product Comparison</span>
+                <span class="text-[11px] text-slate-500">Frozen Dessert vs Real Ice Cream</span>
+              </div>
+              <p class="text-sm font-semibold text-white">"Which Indian ice cream brands use 100% dairy milk instead of vegetable oil?"</p>
+              <p class="text-xs text-slate-400">Rationale: Core marketing battleground between Amul (real dairy) and Kwality Wall's (frozen dessert).</p>
+            </div>
+          </div>
+
+          <div class="bg-surface-850 border border-surface-border rounded-xl p-4 flex items-start gap-4 hover:border-slate-700 transition-all">
+            <input type="checkbox" checked class="variant-chk mt-1 w-4 h-4 rounded border-slate-700 bg-surface-900 text-blue-600 focus:ring-0 cursor-pointer">
+            <div class="flex-1 space-y-1">
+              <div class="flex items-center gap-2">
+                <span class="text-[11px] px-2 py-0.5 rounded bg-surface-800 text-slate-300 font-mono border border-surface-border">Texture & Quality</span>
+                <span class="text-[11px] text-slate-500">Malai Paneer</span>
+              </div>
+              <p class="text-sm font-semibold text-white">"Which store-bought packaged paneer stays soft without getting rubbery after frying?"</p>
+              <p class="text-xs text-slate-400">Rationale: Paneer texture is the primary review criterion in Indian cooking discussions.</p>
+            </div>
+          </div>
+
+          <div class="bg-surface-850 border border-surface-border rounded-xl p-4 flex items-start gap-4 hover:border-slate-700 transition-all">
+            <input type="checkbox" checked class="variant-chk mt-1 w-4 h-4 rounded border-slate-700 bg-surface-900 text-blue-600 focus:ring-0 cursor-pointer">
+            <div class="flex-1 space-y-1">
+              <div class="flex items-center gap-2">
+                <span class="text-[11px] px-2 py-0.5 rounded bg-surface-800 text-slate-300 font-mono border border-surface-border">Chef Preferences</span>
+                <span class="text-[11px] text-slate-500">Pizza Mozzarella</span>
+              </div>
+              <p class="text-sm font-semibold text-white">"What is the best melting mozzarella cheese brand for homemade pizza in India?"</p>
+              <p class="text-xs text-slate-400">Rationale: High-volume consumer query where Amul Pizza Cheese competes with D'lecta.</p>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Modern Clean Footer -->
+  <footer class="border-t border-surface-border bg-surface-850 py-5 px-6 mt-12 text-xs text-slate-400">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <span class="font-bold text-white flex items-center gap-1.5">
+          <i data-lucide="radar" class="w-4 h-4 text-blue-400"></i> PromptPulse
+        </span>
+        <span class="text-slate-500 font-mono">v0.1.0</span>
+        <span class="text-slate-600">·</span>
+        <span class="text-slate-400">Generative Engine Optimization (GEO) POC</span>
+      </div>
+
+      <div class="flex items-center gap-3.5 font-sans text-xs text-slate-400">
+        <span class="flex items-center gap-1.5 text-emerald-400 font-medium">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          Backend API: Online (Port 8000)
+        </span>
+        <span class="text-slate-600">·</span>
+        <span>Tavily Search Grounded</span>
+        <span class="text-slate-600">·</span>
+        <span>OpenRouter LLM Pipeline</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- MODAL: Add New Brand Project -->
+  <div id="new-project-modal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-surface-850 border border-surface-border rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-surface-border pb-3">
+        <div>
+          <h3 class="text-base font-bold text-white">Create New Tracking Project</h3>
+          <p class="text-xs text-slate-400">Track how an AI search engine perceives and cites your brand.</p>
+        </div>
+        <button onclick="closeModal('new-project-modal')" class="p-1 rounded-lg hover:bg-surface-800 text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-4 text-xs">
+        <div class="space-y-1">
+          <label class="font-semibold text-slate-300">Brand Name</label>
+          <input type="text" placeholder="e.g. Puma, boAt, Campus" class="w-full bg-surface-900 border border-surface-border rounded-lg px-3.5 py-2 text-sm text-white focus:border-blue-500 focus:outline-none">
+        </div>
+
+        <div class="space-y-1">
+          <label class="font-semibold text-slate-300">Official Web Domain(s)</label>
+          <input type="text" placeholder="e.g. in.puma.com (comma separated)" class="w-full bg-surface-900 border border-surface-border rounded-lg px-3.5 py-2 text-sm text-white focus:border-blue-500 focus:outline-none">
+          <span class="text-[11px] text-slate-500">Used to detect whether the AI actually cites your official website.</span>
+        </div>
+
+        <div class="space-y-1">
+          <label class="font-semibold text-slate-300">Known Competitors</label>
+          <input type="text" placeholder="e.g. Nike, Adidas, Reebok" class="w-full bg-surface-900 border border-surface-border rounded-lg px-3.5 py-2 text-sm text-white focus:border-blue-500 focus:outline-none">
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-3 pt-3 border-t border-surface-border">
+        <button onclick="closeModal('new-project-modal')" class="px-4 py-2 rounded-lg text-xs font-semibold text-slate-300 hover:bg-surface-800">
+          Cancel
+        </button>
+        <button onclick="closeModal('new-project-modal')" class="px-4 py-2 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow-sm transition-colors">
+          Create & Initialize Project
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Interactive Mockup Logic -->
+  <script>
+    lucide.createIcons();
+
+    // Generic Dropdown Toggle
+    function toggleDropdown(menuId) {
+      const menu = document.getElementById(menuId);
+      const isHidden = menu.classList.contains('hidden');
+      
+      // Close all other dropdowns
+      ['project-menu', 'model-menu', 'rounds-menu'].forEach(id => {
+        document.getElementById(id).classList.add('hidden');
+      });
+
+      if (isHidden) {
+        menu.classList.remove('hidden');
+      }
+    }
+
+    // Close dropdowns on outside click
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#project-menu-btn') && 
+          !e.target.closest('#model-menu') && 
+          !e.target.closest('#rounds-menu') && 
+          !e.target.closest('button[onclick*="toggleDropdown"]')) {
+        ['project-menu', 'model-menu', 'rounds-menu'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.classList.add('hidden');
+        });
+      }
+    });
+
+    // Custom Model Selection
+    function selectModel(modelName) {
+      document.getElementById('selected-model-text').innerText = modelName;
+      document.getElementById('model-menu').classList.add('hidden');
+    }
+
+    // Custom Rounds Selection
+    function selectRounds(roundsText) {
+      document.getElementById('selected-rounds-text').innerText = roundsText;
+      document.getElementById('rounds-menu').classList.add('hidden');
+    }
+
+    // View Switcher (Landing vs Dashboard)
+    function showView(viewName) {
+      const dashboard = document.getElementById('view-dashboard');
+      const landing = document.getElementById('view-landing');
+      const toggleText = document.getElementById('view-toggle-text');
+      
+      if (viewName === 'landing') {
+        dashboard.classList.add('hidden');
+        landing.classList.remove('hidden');
+        toggleText.innerText = 'Dashboard View';
+      } else {
+        landing.classList.add('hidden');
+        dashboard.classList.remove('hidden');
+        toggleText.innerText = 'Landing View';
+      }
+    }
+
+    function toggleView() {
+      const isDashboard = !document.getElementById('view-dashboard').classList.contains('hidden');
+      showView(isDashboard ? 'landing' : 'dashboard');
+    }
+
+    // Modal Handlers
+    function openModal(id) {
+      document.getElementById(id).classList.remove('hidden');
+      document.getElementById('project-menu').classList.add('hidden');
+    }
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
+    }
+
+    // Tab Switching
+    function switchTab(tabId) {
+      const tabs = ['explorer', 'citations', 'generator'];
+      tabs.forEach(t => {
+        const el = document.getElementById('tab-' + t);
+        const btn = document.getElementById('tab-btn-' + t);
+        if (t === tabId) {
+          el.classList.remove('hidden');
+          btn.classList.add('text-white', 'border-blue-500', 'font-semibold');
+          btn.classList.remove('text-slate-400', 'border-transparent', 'font-medium');
+        } else {
+          el.classList.add('hidden');
+          btn.classList.remove('text-white', 'border-blue-500', 'font-semibold');
+          btn.classList.add('text-slate-400', 'border-transparent', 'font-medium');
+        }
+      });
+    }
+
+    // Prompt Selection
+    function selectPrompt(index) {
+      document.querySelectorAll('.prompt-item').forEach((item, idx) => {
+        if (idx === index - 1) {
+          item.classList.add('border-blue-500/50', 'bg-blue-500/10');
+          item.classList.remove('border-surface-border', 'bg-surface-900');
+        } else {
+          item.classList.remove('border-blue-500/50', 'bg-blue-500/10');
+          item.classList.add('border-surface-border', 'bg-surface-900');
+        }
+      });
+    }
+
+    // Select All Checkbox for Prompt Creator
+    function toggleSelectAll(master) {
+      const chks = document.querySelectorAll('.variant-chk');
+      chks.forEach(c => c.checked = master.checked);
+      document.getElementById('bulk-add-btn-text').innerText = master.checked 
+        ? `Add ${chks.length} Selected Prompts to Project`
+        : `Add 0 Selected Prompts to Project`;
+    }
+
+    // Prompt Generator Interaction
+    function generatePromptsMock() {
+      const btn = document.getElementById('btn-generate-prompts');
+      const text = document.getElementById('generate-btn-text');
+      const originalText = text ? text.innerText : 'Generate 10 New Prompts';
+      
+      btn.disabled = true;
+      btn.classList.add('opacity-75', 'cursor-not-allowed');
+      btn.innerHTML = `<i data-lucide="loader" class="w-3.5 h-3.5 animate-spin"></i><span>Generating 10 Prompts...</span>`;
+      lucide.createIcons();
+
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.classList.remove('opacity-75', 'cursor-not-allowed');
+        btn.innerHTML = `<i data-lucide="sparkles" class="w-3.5 h-3.5"></i><span id="generate-btn-text">${originalText}</span>`;
+        lucide.createIcons();
+        
+        const selectAll = document.getElementById('select-all-checkbox');
+        if (selectAll) selectAll.checked = true;
+        toggleSelectAll(selectAll);
+      }, 700);
+    }
+
+    // Add Selected Prompts to Project Interaction
+    function addSelectedPrompts() {
+      const btn = document.getElementById('bulk-add-btn');
+      const selectedCount = document.querySelectorAll('.variant-chk:checked').length;
+      
+      if (selectedCount === 0) {
+        alert('Please select at least 1 prompt to add.');
+        return;
+      }
+
+      btn.classList.remove('bg-blue-600', 'hover:bg-blue-500');
+      btn.classList.add('bg-emerald-600', 'hover:bg-emerald-500');
+      btn.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5"></i><span>Added ${selectedCount} Prompts to Project!</span>`;
+      lucide.createIcons();
+
+      setTimeout(() => {
+        btn.classList.remove('bg-emerald-600', 'hover:bg-emerald-500');
+        btn.classList.add('bg-blue-600', 'hover:bg-blue-500');
+        btn.innerHTML = `<i data-lucide="plus-circle" class="w-4 h-4"></i><span id="bulk-add-btn-text">Add ${selectedCount} Selected Prompts to Project</span>`;
+        lucide.createIcons();
+      }, 1500);
+    }
+
+    // Add Custom Prompt to List
+    function addCustomPrompt() {
+      const input = document.getElementById('custom-prompt-input');
+      const val = input.value.trim();
+      if (!val) return;
+
+      const container = document.querySelector('#tab-generator .space-y-2\\.5');
+      if (container) {
+        const newCard = document.createElement('div');
+        newCard.className = 'bg-surface-850 border border-blue-500/40 rounded-xl p-4 flex items-start gap-4 hover:border-slate-700 transition-all';
+        newCard.innerHTML = `
+          <input type="checkbox" checked class="variant-chk mt-1 w-4 h-4 rounded border-slate-700 bg-surface-900 text-blue-600 focus:ring-0 cursor-pointer" onchange="updateSelectedCount()">
+          <div class="flex-1 space-y-1">
+            <div class="flex items-center gap-2">
+              <span class="text-[11px] px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 font-mono border border-blue-500/20">Custom Added</span>
+              <span class="text-[11px] text-slate-500">User Defined</span>
+            </div>
+            <p class="text-sm font-semibold text-white">"${val}"</p>
+            <p class="text-xs text-slate-400">Custom user-authored search query for tracking.</p>
+          </div>
+        `;
+        container.prepend(newCard);
+        input.value = '';
+        updateSelectedCount();
+      }
+    }
+
+    function updateSelectedCount() {
+      const total = document.querySelectorAll('.variant-chk').length;
+      const checked = document.querySelectorAll('.variant-chk:checked').length;
+      const selectAll = document.getElementById('select-all-checkbox');
+      if (selectAll) selectAll.checked = (total === checked);
+      const btnText = document.getElementById('bulk-add-btn-text');
+      if (btnText) btnText.innerText = `Add ${checked} Selected Prompts to Project`;
+    }
+  </script>
+
+</body>
+</html>
