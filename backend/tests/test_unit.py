@@ -134,3 +134,61 @@ def test_tracking_batch_rounds_validation():
 
     with pytest.raises(ValidationError):
         TrackingBatchCreate(rounds=4)
+
+
+# ── 6. Project Lifecycle & Empty State API Tests ──────────────────────────────
+
+def test_project_lifecycle_empty_state_and_delete():
+    """Verify that newly created projects have empty state and can be deleted cleanly."""
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    client = TestClient(app)
+
+    # 1. Create a brand new project (Lenovo)
+    create_res = client.post(
+        "/projects",
+        json={
+            "brand_name": "Test Lenovo",
+            "domain": ["lenovo.com"],
+            "competitors": ["HP", "Dell", "Asus"],
+            "aliases": ["Lenovo Group"]
+        }
+    )
+    assert create_res.status_code in (200, 201)
+    proj = create_res.json()
+    proj_id = proj["id"]
+    assert proj["brand_name"] == "Test Lenovo"
+
+    try:
+        # 2. Check that prompts are completely empty
+        prompts_res = client.get(f"/projects/{proj_id}/prompts")
+        assert prompts_res.status_code == 200
+        assert prompts_res.json() == []
+
+        # 3. Check that summary has 0 runs, 0.0 visibility, and empty top competitors
+        summary_res = client.get(f"/projects/{proj_id}/summary")
+        assert summary_res.status_code == 200
+        summary = summary_res.json()
+        assert summary["total_runs"] == 0
+        assert summary["mentioned_count"] == 0
+        assert summary["visibility_percentage"] == 0.0
+        assert summary["top_competitors"] == []
+
+        # 4. Check results / executions list is empty
+        results_res = client.get(f"/projects/{proj_id}/results")
+        assert results_res.status_code == 200
+        assert results_res.json() == []
+
+        # 5. Check citations list is empty
+        citations_res = client.get(f"/projects/{proj_id}/citations")
+        assert citations_res.status_code == 200
+        assert citations_res.json() == []
+    finally:
+        # 6. Delete the project
+        del_res = client.delete(f"/projects/{proj_id}")
+        assert del_res.status_code == 204
+
+        # Verify project is gone
+        get_res = client.get(f"/projects/{proj_id}")
+        assert get_res.status_code == 404

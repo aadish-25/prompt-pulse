@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Radar, ChevronDown, Home, LayoutDashboard, Cpu, Repeat, Play, Plus, Loader2 } from 'lucide-react';
+import { Radar, ChevronDown, Home, LayoutDashboard, Cpu, Repeat, Play, Plus, Loader2, Trash2 } from 'lucide-react';
 
 export default function Header({
   activeProject,
   projects,
   onSelectProject,
   onOpenNewProjectModal,
+  onDeleteProject,
   currentView,
   onToggleView,
   selectedModel,
@@ -79,23 +80,43 @@ export default function Header({
               {projects.map((p) => {
                 const isActive = p.id === activeProject?.id;
                 return (
-                  <button
+                  <div
                     key={p.id}
-                    onClick={() => { onSelectProject(p); setProjectOpen(false); }}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                    className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors group ${
                       isActive
                         ? 'bg-blue-500/10 border border-blue-500/20 text-white'
                         : 'text-slate-300 hover:bg-surface-800'
                     }`}
                   >
-                    <span className="flex items-center gap-2">
-                      <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-emerald-400' : 'bg-slate-500'}`}></span>
-                      {p.brand_name}
-                    </span>
-                    <span className="text-[10px] text-slate-400">
-                      {p.domain?.[0] || 'domain'}
-                    </span>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => { onSelectProject(p); setProjectOpen(false); }}
+                      className="flex-1 flex items-center justify-between text-left cursor-pointer mr-2 min-w-0"
+                    >
+                      <span className="flex items-center gap-2 truncate">
+                        <span className={`w-2 h-2 rounded-full shrink-0 ${isActive ? 'bg-emerald-400' : 'bg-slate-500'}`}></span>
+                        <span className="truncate">{p.brand_name}</span>
+                      </span>
+                      <span className="text-[10px] text-slate-400 shrink-0 ml-1">
+                        {p.domain?.[0] || 'domain'}
+                      </span>
+                    </button>
+                    {onDeleteProject && (
+                      <button
+                        type="button"
+                        title={`Delete ${p.brand_name}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (window.confirm(`Are you sure you want to delete project "${p.brand_name}"? This action cannot be undone.`)) {
+                            onDeleteProject(p.id);
+                          }
+                        }}
+                        className="p-1 rounded text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors opacity-70 hover:opacity-100 shrink-0 cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
                 );
               })}
               <div className="pt-1 border-t border-surface-border">

@@ -5,7 +5,7 @@ import { CheckCircle, Search, Smile, Check, ExternalLink } from 'lucide-react';
  * PromptExplorer (AI Answers & Grounding) - Deep-dive execution inspector.
  * Accurately aligns citation numbers between the AI answer and the sources table.
  */
-export default function PromptExplorer({ runs = [], focusedPromptId = null }) {
+export default function PromptExplorer({ runs = [], focusedPromptId = null, activeProject = null }) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [sourceFilter, setSourceFilter] = useState('cited'); // 'cited' | 'all'
 
@@ -16,6 +16,22 @@ export default function PromptExplorer({ runs = [], focusedPromptId = null }) {
       if (idx !== -1) setSelectedIndex(idx);
     }
   }, [focusedPromptId, runs]);
+
+  if (!runs || runs.length === 0) {
+    return (
+      <div className="bg-surface-850 border border-surface-border rounded-xl p-12 text-center space-y-4">
+        <div className="w-12 h-12 mx-auto rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center">
+          <Search className="w-6 h-6" />
+        </div>
+        <div className="space-y-1.5 max-w-md mx-auto">
+          <h4 className="text-base font-bold text-white">No Executions Grounded Yet</h4>
+          <p className="text-xs text-slate-400 leading-relaxed">
+            This brand project has not executed any tracking batches yet. Navigate to <strong>Tracked Prompts</strong> or <strong>AI Prompt Creator</strong> to add queries, then click <strong>Run Tracking Batch</strong> to evaluate AI responses and ground citations.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const activeRun = runs[selectedIndex] || runs[0];
 
@@ -29,10 +45,11 @@ export default function PromptExplorer({ runs = [], focusedPromptId = null }) {
   const displayedSources = sourceFilter === 'cited' ? citedSources : allWebResults;
 
   const targetMentionsCount = activeRun?.brand_mentions?.length ?? 0;
-  const targetCited = allWebResults.some(s => s.domain.includes('amul.com') && s.cited) ? 1 : 0;
+  const projectDomains = activeProject?.domain || ['amul.com'];
+  const targetCited = allWebResults.some(s => s.cited && projectDomains.some(d => s.domain?.toLowerCase().includes(d.toLowerCase()))) ? 1 : 0;
   const totalCitations = citedSources.length;
 
-  const topCompetitorName = activeRun?.analysis?.other_brands?.[0] || 'Mother Dairy';
+  const topCompetitorName = activeRun?.analysis?.other_brands?.[0] || 'None Detected';
   const sentiment = activeRun?.analysis?.target_sentiment || 'positive';
 
   return (

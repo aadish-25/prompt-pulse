@@ -26,6 +26,7 @@ import {
   generatePromptVariants,
   addPromptsBulk,
   createProject,
+  deleteProject,
   FALLBACK_PROJECTS,
   FALLBACK_SUMMARY,
   FALLBACK_CITATIONS,
@@ -75,6 +76,12 @@ export default function App() {
 
   // Load project details, prompts, and all executions
   const loadProjectData = useCallback(async (projId) => {
+    if (!projId) {
+      setRuns([]);
+      setPrompts([]);
+      setCitations([]);
+      return;
+    }
     try {
       const [projData, sumData, citData, runsData, promptsData] = await Promise.all([
         fetchProject(projId),
@@ -85,10 +92,16 @@ export default function App() {
       ]);
 
       if (projData) setActiveProject(projData);
-      if (sumData) setSummary(sumData);
-      if (citData) setCitations(citData);
-      if (runsData && runsData.length > 0) setRuns(runsData);
-      if (promptsData && promptsData.length > 0) setPrompts(promptsData);
+      setSummary(sumData || {
+        total_runs: 0,
+        overall_visibility_pct: 0,
+        sentiment_breakdown: {},
+        top_cited_domains: [],
+        top_competitors: []
+      });
+      setCitations(citData || []);
+      setRuns(runsData || []);
+      setPrompts(promptsData || []);
     } catch (err) {
       console.warn('Error fetching project data, fallback retained:', err);
     }
@@ -129,6 +142,37 @@ export default function App() {
     setActiveProjectId(proj.id);
     setActiveProject(proj);
     await loadProjectData(proj.id);
+  };
+
+  // Delete project handler
+  const handleDeleteProject = async (projectId) => {
+    try {
+      await deleteProject(projectId);
+      const remaining = projects.filter(p => p.id !== projectId);
+      setProjects(remaining);
+      if (activeProjectId === projectId) {
+        if (remaining.length > 0) {
+          await handleSelectProject(remaining[0]);
+        } else {
+          setActiveProjectId(null);
+          setActiveProject(null);
+          setRuns([]);
+          setPrompts([]);
+          setSummary({
+            total_runs: 0,
+            overall_visibility_pct: 0,
+            sentiment_breakdown: {},
+            top_cited_domains: [],
+            top_competitors: []
+          });
+          setCitations([]);
+        }
+      }
+      showToast('Project deleted successfully.');
+    } catch (err) {
+      console.error('Failed to delete project:', err);
+      showToast('Failed to delete project.');
+    }
   };
 
   // Toggle prompt active/inactive
@@ -255,6 +299,7 @@ export default function App() {
         projects={projects}
         onSelectProject={handleSelectProject}
         onOpenNewProjectModal={() => setIsModalOpen(true)}
+        onDeleteProject={handleDeleteProject}
         currentView={currentView}
         onToggleView={setCurrentView}
         selectedModel={selectedModel}
@@ -290,6 +335,7 @@ export default function App() {
             <PromptExplorer
               runs={runs}
               focusedPromptId={focusedPromptId}
+              activeProject={activeProject}
             />
           )}
 
