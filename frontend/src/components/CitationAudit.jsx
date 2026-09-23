@@ -73,8 +73,8 @@ export default function CitationAudit({ summary, project, citations = [] }) {
     });
   }, [summary, project, brandName, targetMentions, totalRuns, configuredCompetitors]);
 
-  // Ensure target domain is represented in citations list if not already
-  const domainRows = useMemo(() => {
+  // Ensure target domain is represented in citations list and sorted strictly by performance
+  const sortedDomainRows = useMemo(() => {
     const list = [...citations];
     if (targetDomain && totalRuns > 0) {
       const hasTarget = list.some(c => c.domain.toLowerCase() === targetDomain.toLowerCase());
@@ -82,18 +82,38 @@ export default function CitationAudit({ summary, project, citations = [] }) {
         list.push({
           domain: targetDomain,
           retrieved: summary?.own_domain_retrieved_count ?? 0,
-          cited: summary?.own_domain_cited_count ?? 0
+          cited: summary?.own_domain_cited_count ?? 0,
+          isTarget: true
         });
       }
     }
-    return list.sort((a, b) => {
-      const aIsTarget = targetDomain ? a.domain.toLowerCase().includes(targetDomain.toLowerCase()) : false;
-      const bIsTarget = targetDomain ? b.domain.toLowerCase().includes(targetDomain.toLowerCase()) : false;
-      if (aIsTarget) return 1;
-      if (bIsTarget) return -1;
-      return b.cited - a.cited || b.retrieved - a.retrieved;
-    });
+    return list.map(d => ({
+      ...d,
+      isTarget: targetDomain ? d.domain.toLowerCase().includes(targetDomain.toLowerCase()) : false
+    })).sort((a, b) => b.cited - a.cited || b.retrieved - a.retrieved);
   }, [citations, targetDomain, summary, totalRuns]);
+
+  // Pagination for Domain Citation Audit (10 items per page)
+  const DOMAIN_PAGE_SIZE = 10;
+  const [domainPage, setDomainPage] = React.useState(1);
+  const totalDomainPages = Math.max(1, Math.ceil(sortedDomainRows.length / DOMAIN_PAGE_SIZE));
+
+  React.useEffect(() => {
+    if (domainPage > totalDomainPages) {
+      setDomainPage(totalDomainPages);
+    }
+  }, [totalDomainPages, domainPage]);
+
+  const pagedDomains = useMemo(() => {
+    const start = (domainPage - 1) * DOMAIN_PAGE_SIZE;
+    return sortedDomainRows.slice(start, start + DOMAIN_PAGE_SIZE);
+  }, [sortedDomainRows, domainPage]);
+
+  const targetDomainRow = useMemo(() => {
+    return sortedDomainRows.find(d => d.isTarget);
+  }, [sortedDomainRows]);
+
+  const isTargetInCurrentPage = pagedDomains.some(d => d.isTarget);
 
   return (
     <section className="space-y-6">
@@ -161,14 +181,39 @@ export default function CitationAudit({ summary, project, citations = [] }) {
 
         {/* Domain Citation Audit Table */}
         <div className="lg:col-span-6 bg-surface-850 border border-surface-border rounded-xl p-5 space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between pb-1 text-xs">
             <div>
               <h3 className="text-sm font-bold text-white">Domain Citation Audit</h3>
               <p className="text-xs text-slate-400">Domains sorted strictly by actual citation count in AI search responses</p>
             </div>
-            <span className="text-xs bg-surface-800 px-2 py-1 rounded text-slate-300 font-medium">
-              {domainRows.length} Domains Audited
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs bg-surface-800 px-2 py-0.5 rounded text-slate-300 font-medium">
+                {sortedDomainRows.length} Domains
+              </span>
+              {totalDomainPages > 1 && (
+                <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+                  <span>Page {domainPage} of {totalDomainPages}</span>
+                  <button
+                    type="button"
+                    onClick={() => setDomainPage(p => Math.max(1, p - 1))}
+                    disabled={domainPage <= 1}
+                    className="w-5 h-5 rounded flex items-center justify-center bg-surface-900 hover:bg-surface-800 border border-surface-border text-slate-300 disabled:opacity-30 disabled:hover:bg-surface-900 cursor-pointer disabled:cursor-not-allowed transition-colors"
+                    title="Previous page"
+                  >
+                    ‹
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDomainPage(p => Math.min(totalDomainPages, p + 1))}
+                    disabled={domainPage >= totalDomainPages}
+                    className="w-5 h-5 rounded flex items-center justify-center bg-surface-900 hover:bg-surface-800 border border-surface-border text-slate-300 disabled:opacity-30 disabled:hover:bg-surface-900 cursor-pointer disabled:cursor-not-allowed transition-colors"
+                    title="Next page"
+                  >
+                    ›
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="border border-surface-border rounded-lg overflow-hidden">
@@ -182,39 +227,87 @@ export default function CitationAudit({ summary, project, citations = [] }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-border text-slate-300">
-                {domainRows.length === 0 ? (
+                {pagedDomains.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="py-8 text-center text-slate-500 italic">
                       No domain citations recorded yet for this project.
                     </td>
                   </tr>
                 ) : (
-                  domainRows.map((d, idx) => {
-                    const isTarget = targetDomain ? d.domain.toLowerCase().includes(targetDomain.toLowerCase()) : false;
-                    const rate = d.retrieved > 0 ? ((d.cited / d.retrieved) * 100).toFixed(1) : '0.0';
+                  <>
+                    {pagedDomains.map((d, idx) => {
+                      const rate = d.retrieved > 0 ? ((d.cited / d.retrieved) * 100).toFixed(1) : '0.0';
 
-                    if (isTarget) {
+                      if (d.isTarget) {
+                        const isCited = d.cited >= 1;
+                        return (
+                          <tr key={idx} className={isCited ? 'bg-emerald-500/10' : 'bg-surface-800/60'}>
+                            <td className={`py-2.5 px-3 font-bold flex items-center gap-1.5 ${
+                              isCited ? 'text-emerald-300' : 'text-slate-200'
+                            }`}>
+                              <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                              <span>{d.domain}</span>
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                                Target Brand
+                              </span>
+                            </td>
+                            <td className={`py-2.5 px-3 text-right ${isCited ? 'text-emerald-200' : 'text-slate-300'}`}>
+                              {d.retrieved}
+                            </td>
+                            <td className={`py-2.5 px-3 text-right font-bold ${
+                              isCited ? 'text-emerald-400' : 'text-slate-400'
+                            }`}>
+                              {d.cited}
+                            </td>
+                            <td className={`py-2.5 px-3 text-right ${
+                              isCited ? 'text-emerald-400 font-semibold' : 'text-slate-400'
+                            }`}>
+                              {rate}%
+                            </td>
+                          </tr>
+                        );
+                      }
+
                       return (
-                        <tr key={idx} className="bg-amber-500/10">
-                          <td className="py-2.5 px-3 font-bold text-amber-300">
-                            {d.domain} (Target)
-                          </td>
-                          <td className="py-2.5 px-3 text-right text-amber-300">{d.retrieved}</td>
-                          <td className="py-2.5 px-3 text-right text-amber-400 font-bold">{d.cited}</td>
-                          <td className="py-2.5 px-3 text-right text-amber-400">{rate}%</td>
+                        <tr key={idx} className="hover:bg-surface-800/40 transition-colors">
+                          <td className="py-2.5 px-3 font-medium text-white">{d.domain}</td>
+                          <td className="py-2.5 px-3 text-right">{d.retrieved}</td>
+                          <td className="py-2.5 px-3 text-right text-emerald-400 font-semibold">{d.cited}</td>
+                          <td className="py-2.5 px-3 text-right">{rate}%</td>
                         </tr>
                       );
-                    }
+                    })}
 
-                    return (
-                      <tr key={idx} className="hover:bg-surface-800/40 transition-colors">
-                        <td className="py-2.5 px-3 font-medium text-white">{d.domain}</td>
-                        <td className="py-2.5 px-3 text-right">{d.retrieved}</td>
-                        <td className="py-2.5 px-3 text-right text-emerald-400 font-semibold">{d.cited}</td>
-                        <td className="py-2.5 px-3 text-right">{rate}%</td>
+                    {/* Pinned Target Brand Row when target domain is not on the current page */}
+                    {targetDomainRow && !isTargetInCurrentPage && (
+                      <tr className={`border-t-2 border-surface-border ${
+                        targetDomainRow.cited >= 1 ? 'bg-emerald-500/10' : 'bg-surface-800/60'
+                      }`}>
+                        <td className={`py-2.5 px-3 font-bold flex items-center gap-1.5 ${
+                          targetDomainRow.cited >= 1 ? 'text-emerald-300' : 'text-slate-200'
+                        }`}>
+                          <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                          <span>{targetDomainRow.domain}</span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                            Target (Rank #{sortedDomainRows.findIndex(d => d.isTarget) + 1})
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3 text-right text-slate-300">{targetDomainRow.retrieved}</td>
+                        <td className={`py-2.5 px-3 text-right font-bold ${
+                          targetDomainRow.cited >= 1 ? 'text-emerald-400' : 'text-slate-400'
+                        }`}>
+                          {targetDomainRow.cited}
+                        </td>
+                        <td className={`py-2.5 px-3 text-right ${
+                          targetDomainRow.cited >= 1 ? 'text-emerald-400 font-semibold' : 'text-slate-400'
+                        }`}>
+                          {targetDomainRow.retrieved > 0
+                            ? ((targetDomainRow.cited / targetDomainRow.retrieved) * 100).toFixed(1)
+                            : '0.0'}%
+                        </td>
                       </tr>
-                    );
-                  })
+                    )}
+                  </>
                 )}
               </tbody>
             </table>
