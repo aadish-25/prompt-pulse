@@ -442,18 +442,18 @@ export default function PromptExplorer({
 
         {/* Grounding Sources Table with Accurate Ref Matching */}
         <div className="pt-4 border-t border-surface-border space-y-2.5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+            <div className="min-w-0">
               <span className="text-[11px] font-semibold text-slate-300 uppercase tracking-wider block">
-                Grounding Sources ({citedSources.length} Cited out of {allWebResults.length} Retrieved)
+                Grounding Sources ({citedSources.length} Cited / {allWebResults.length} Retrieved)
               </span>
               <span className="text-[11px] text-slate-500">
-                Ref tags [X] directly match the citation numbers in the response above
+                Ref tags [X] directly match citation numbers in the AI response above
               </span>
             </div>
 
             {/* Filter Toggle: Cited Only vs All Retrieved */}
-            <div className="flex items-center rounded-lg bg-surface-900 border border-surface-border p-0.5 text-[11px]">
+            <div className="flex items-center rounded-lg bg-surface-900 border border-surface-border p-0.5 text-[11px] shrink-0 self-start sm:self-center">
               <button
                 type="button"
                 onClick={() => setSourceFilter('cited')}
@@ -479,15 +479,14 @@ export default function PromptExplorer({
             </div>
           </div>
 
-          <div className="border border-surface-border rounded-lg overflow-hidden max-h-52 overflow-y-auto custom-scrollbar">
+          <div className="border border-surface-border rounded-lg max-h-56 overflow-y-auto overflow-x-auto custom-scrollbar">
             <table className="w-full text-left text-xs font-sans">
               <thead className="bg-surface-800 text-slate-400 border-b border-surface-border sticky top-0 z-10">
                 <tr>
-                  <th className="py-2 px-3 font-medium w-16">Ref</th>
-                  <th className="py-2 px-3 font-medium">Domain</th>
-                  <th className="py-2 px-3 font-medium">Article Title & URL</th>
-                  <th className="py-2 px-3 font-medium text-center w-20">Status</th>
-                  <th className="py-2 px-3 font-medium text-right w-24">Tavily Score</th>
+                  <th className="py-2.5 px-3 font-semibold w-14 shrink-0 text-blue-400">Ref</th>
+                  <th className="py-2.5 px-3 font-medium w-40 shrink-0">Domain</th>
+                  <th className="py-2.5 px-3 font-medium">Article Title & URL</th>
+                  <th className="py-2.5 px-3 font-medium text-right w-24 shrink-0 pr-4">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-border text-slate-300">
@@ -496,31 +495,37 @@ export default function PromptExplorer({
                     key={idx} 
                     className={`${source.cited ? 'bg-blue-500/5 hover:bg-blue-500/10' : 'hover:bg-surface-800/40 opacity-75'} transition-colors`}
                   >
-                    <td className="py-2 px-3 text-blue-400 font-bold whitespace-nowrap">
+                    <td className="py-2.5 px-3 text-blue-400 font-bold whitespace-nowrap">
                       [{source.refNumber}]
                     </td>
-                    <td className="py-2 px-3 text-white font-medium whitespace-nowrap">
-                      {source.domain}
+                    <td className="py-2.5 px-3 text-white font-medium whitespace-nowrap">
+                      <span className="truncate block max-w-[150px]" title={source.domain}>
+                        {source.domain}
+                      </span>
                     </td>
-                    <td className="py-2 px-3 truncate max-w-xs text-slate-300">
-                      <div className="font-medium text-white truncate" title={source.title}>
-                        {source.title || source.domain}
-                      </div>
-                      <div className="text-[10px] text-slate-500 truncate">{source.url}</div>
+                    <td className="py-2.5 px-3 text-slate-300">
+                      <a 
+                        href={source.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="font-medium text-white hover:text-blue-400 flex items-center gap-1.5 transition-colors group"
+                        title={source.title || source.url}
+                      >
+                        <span className="truncate">{source.title || source.domain}</span>
+                        <ExternalLink className="w-3 h-3 text-slate-500 group-hover:text-blue-400 shrink-0" />
+                      </a>
+                      <div className="text-[10px] text-slate-500 truncate max-w-md" title={source.url}>{source.url}</div>
                     </td>
-                    <td className="py-2 px-3 text-center whitespace-nowrap">
+                    <td className="py-2.5 px-3 text-right whitespace-nowrap pr-4">
                       {source.cited ? (
-                        <span className="px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/20 inline-flex items-center gap-1">
+                        <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/20 inline-flex items-center gap-1">
                           <Check className="w-3 h-3" /> Cited
                         </span>
                       ) : (
-                        <span className="text-[10px] text-slate-500">
+                        <span className="px-1.5 py-0.5 rounded text-[10px] bg-slate-800 text-slate-400 border border-surface-border">
                           Retrieved
                         </span>
                       )}
-                    </td>
-                    <td className="py-2 px-3 text-right text-emerald-400 font-semibold whitespace-nowrap">
-                      {(source.score || 0.85).toFixed(3)}
                     </td>
                   </tr>
                 ))}
