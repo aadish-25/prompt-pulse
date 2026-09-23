@@ -362,21 +362,17 @@ export async function addPromptsBulk(projectId = 4, texts) {
     }));
 }
 
-/**
- * Create a new brand tracking project.
- */
 export async function createProject(data) {
-    try {
-        const res = await fetch(`${API_BASE}/projects`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(data),
-        });
-        if (res.ok) return await res.json();
-    } catch (e) {
-        console.warn("Create project API unavailable", e);
+    const res = await fetch(`${API_BASE}/projects`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Failed to create project (HTTP ${res.status})`);
     }
-    return { id: Date.now(), ...data, created_at: new Date().toISOString() };
+    return await res.json();
 }
 
 // ==========================================
