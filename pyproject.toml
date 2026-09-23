@@ -15,6 +15,7 @@ dependencies = [
     "sqlalchemy>=2.0.54",
     "tavily-python>=0.8.4",
     "tenacity>=9.1.4",
+    "mangum>=0.19.0",
 ]
 
 [tool.pytest.ini_options]
