@@ -59,14 +59,15 @@ def find_target_mentions(
     return results
 
 
-def analyze_answer(answer: str, target_brand: str) -> ExtractionResult:
+def analyze_answer(answer: str, target_brand: str, model: str | None = None) -> ExtractionResult:
     """
     One combined LLM call: lists competitor brands and judges sentiment
     toward the target brand, with a short remark as evidence.
     """
-    client = get_client()
+    from app.config import resolve_llm
+    client, clean_model = resolve_llm(model or MODEL)
     response = client.beta.chat.completions.parse(
-        model=normalize_model_for_provider(MODEL),
+        model=clean_model,
         messages=[
             {
                 "role": "system",

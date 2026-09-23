@@ -11,6 +11,7 @@ class Project(Base):
     domain: Mapped[list] = mapped_column(JSON, default=list)
     aliases: Mapped[list] = mapped_column(JSON, default=list)
     competitors: Mapped[list] = mapped_column(JSON, default=list)
+    draft_candidates: Mapped[list] = mapped_column(JSON, default=list)
     created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
 
     prompts: Mapped[list["Prompt"]] = relationship(back_populates="project")

@@ -29,11 +29,12 @@ MAX_STEPS = MAX_SEARCH_STEPS + 1
     reraise=True,
 )
 def _chat_completion_with_retry(**kwargs):
-    client = get_llm_client()
+    raw_model = kwargs.get("model")
+    from app.config import resolve_llm
+    client, clean_model = resolve_llm(raw_model)
+    kwargs["model"] = clean_model
     if "max_tokens" not in kwargs:
         kwargs["max_tokens"] = 1500
-    if "model" in kwargs:
-        kwargs["model"] = normalize_model_for_provider(kwargs["model"])
     return client.chat.completions.create(**kwargs)
 
 

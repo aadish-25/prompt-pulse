@@ -177,8 +177,19 @@ def generate_variants(
             intent_category=v.intent_category,
             rationale=v.rationale,
         )
-        for v in raw_variants
+    # Automatically persist newly generated draft candidates into PostgreSQL
+    candidate_dicts = [
+        {
+            "id": f"cand_{project.id}_{idx}_{v.intent_category}",
+            "prompt": v.text,
+            "topic": v.intent_category,
+            "intent": "Natural Search",
+            "rationale": v.rationale,
+        }
+        for idx, v in enumerate(variants_out)
     ]
+    project.draft_candidates = candidate_dicts
+    db.commit()
 
     return schemas.VariantGenerateResponse(
         brand_name=project.brand_name,
@@ -186,3 +197,17 @@ def generate_variants(
         seed_topic=seed_topic,
         model=selected_model,
     )
+
+
+@router.put("/projects/{project_id}/candidates", response_model=schemas.ProjectOut)
+def update_project_candidates(
+    project_id: int,
+    payload: schemas.ProjectCandidatesUpdate,
+    db: Session = Depends(get_db),
+):
+    """Saves un-added candidate drafts directly in Neon PostgreSQL."""
+    project = get_project_or_404(db, project_id)
+    project.draft_candidates = payload.candidates
+    db.commit()
+    db.refresh(project)
+    return project

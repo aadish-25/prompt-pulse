@@ -139,14 +139,41 @@ export async function fetchSupportedModels() {
         console.warn("API unavailable, using fallback models", e);
     }
     return {
-        default_model: "openai/gpt-4o-mini",
+        default_model: "OR: openai/gpt-4o-mini",
         supported_models: [
-            "openai/gpt-4o-mini",
-            "google/gemini-2.5-flash",
-            "meta-llama/llama-3.3-70b-instruct",
-            "openai/gpt-4o",
+            "OR: openai/gpt-4o-mini",
+            "OR: google/gemini-2.5-flash",
+            "OR: meta-llama/llama-3.3-70b-instruct",
+            "OR: openai/gpt-4o",
+            "GROQ: openai/gpt-oss-120b",
+            "GROQ: qwen/qwen3.8-27b",
+            "GROQ: openai/gpt-oss-20b",
+            "AR: gpt-4o-mini",
+            "AR: gpt-4o",
+            "AR: claude-3-5-sonnet",
+            "AR: gemini-1.5-flash",
+            "AR: deepseek-chat",
+            "DS: deepseek-chat",
+            "DS: deepseek-reasoner",
         ],
     };
+}
+
+/**
+ * Save draft prompt candidates to the project in the database.
+ */
+export async function saveProjectCandidates(projectId, candidates) {
+    try {
+        const res = await fetch(`${API_BASE}/projects/${projectId}/candidates`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ candidates: candidates || [] }),
+        });
+        if (res.ok) return await res.json();
+    } catch (e) {
+        console.warn("Failed to persist candidates to database", e);
+    }
+    return null;
 }
 
 /**
