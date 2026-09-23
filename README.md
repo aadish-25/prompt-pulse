@@ -75,11 +75,6 @@ PromptPulse includes a curated multi-provider model pool accessible directly via
 | `GROQ:` | **Groq** | `GROQ: openai/gpt-oss-120b` | `openai/gpt-oss-120b` | Ultra-fast LPU inference, native tool calling & structured outputs |
 | `GROQ:` | **Groq** | `GROQ: qwen/qwen3.8-27b` | `qwen/qwen3.8-27b` | Blazing-fast inference for rapid prompt variant ideation |
 | `GROQ:` | **Groq** | `GROQ: openai/gpt-oss-20b` | `openai/gpt-oss-20b` | Extremely lightweight, low-latency testing |
-| `AR:` | **AgentRouter** | `AR: gpt-4o-mini` | `gpt-4o-mini` | Balanced intelligence using AgentRouter community credit pool |
-| `AR:` | **AgentRouter** | `AR: gpt-4o` | `gpt-4o` | Frontier OpenAI model routed through AgentRouter |
-| `AR:` | **AgentRouter** | `AR: claude-3-5-sonnet` | `claude-3-5-sonnet` | Anthropic's top-tier reasoning and coding model (avoids overkill of Opus) |
-| `AR:` | **AgentRouter** | `AR: gemini-1.5-flash` | `gemini-1.5-flash` | Fast Google model on AgentRouter |
-| `AR:` | **AgentRouter** | `AR: deepseek-chat` | `deepseek-chat` | DeepSeek-V3 chat via AgentRouter |
 | `DS:` | **DeepSeek** | `DS: deepseek-chat` | `deepseek-chat` | Direct DeepSeek API (~$0.14/1M tokens, ultra-affordable) |
 | `DS:` | **DeepSeek** | `DS: deepseek-reasoner` | `deepseek-reasoner` | Direct DeepSeek-R1 reasoning model for deep evaluation analysis |
 
@@ -87,8 +82,10 @@ PromptPulse includes a curated multi-provider model pool accessible directly via
 
 Because all four providers use standard OpenAI-compatible endpoints, you can add any of the following models simply by adding them to `SUPPORTED_MODELS` in `backend/app/config.py`:
 
-* **Anthropic via OpenRouter / AgentRouter**:
-  * `OR: anthropic/claude-3.5-haiku` / `AR: claude-3-5-haiku` (Affordable, ultra-fast Claude model)
+* **AgentRouter Models (Handler already coded in `PROVIDER_CONFIG`)**:
+  * `AR: gpt-4o-mini`, `AR: gpt-4o`, `AR: claude-3-5-sonnet`, `AR: gemini-1.5-flash`, `AR: deepseek-chat`
+* **Anthropic via OpenRouter**:
+  * `OR: anthropic/claude-3.5-haiku` (Affordable, ultra-fast Claude model)
   * `OR: anthropic/claude-3.7-sonnet` (Hybrid reasoning & thinking mode)
 * **Meta Llama Family**:
   * `OR: meta-llama/llama-3.1-8b-instruct` / `GROQ: llama-3.1-8b-instant` (Very lightweight)

@@ -32,12 +32,6 @@ SUPPORTED_MODELS = [
     "GROQ: openai/gpt-oss-120b",
     "GROQ: qwen/qwen3.8-27b",
     "GROQ: openai/gpt-oss-20b",
-    # AgentRouter (third-party gateway with multi-model relay)
-    "AR: gpt-4o-mini",
-    "AR: gpt-4o",
-    "AR: claude-3-5-sonnet",
-    "AR: gemini-1.5-flash",
-    "AR: deepseek-chat",
     # DeepSeek Direct
     "DS: deepseek-chat",
     "DS: deepseek-reasoner",
