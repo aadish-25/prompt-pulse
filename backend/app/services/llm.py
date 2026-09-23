@@ -8,13 +8,17 @@ from openai import OpenAI
 from tenacity import retry, stop_after_attempt, wait_exponential
 from app.services.search import search
 from app.services.citations import extract_cited
-from app.config import MAX_SEARCH_STEPS, MODEL, FORCE_MIN_SEARCHES, MIN_SEARCHES
+from app.config import (
+    MAX_SEARCH_STEPS,
+    MODEL,
+    FORCE_MIN_SEARCHES,
+    MIN_SEARCHES,
+    get_llm_client,
+    normalize_model_for_provider,
+)
 
 def get_client():
-    return OpenAI(
-        base_url="https://openrouter.ai/api/v1",
-        api_key=os.environ.get("OPENROUTER_API_KEY", ""),
-    )
+    return get_llm_client()
 
 MAX_STEPS = MAX_SEARCH_STEPS + 1
 
@@ -25,9 +29,11 @@ MAX_STEPS = MAX_SEARCH_STEPS + 1
     reraise=True,
 )
 def _chat_completion_with_retry(**kwargs):
-    client = get_client()
+    client = get_llm_client()
     if "max_tokens" not in kwargs:
         kwargs["max_tokens"] = 1500
+    if "model" in kwargs:
+        kwargs["model"] = normalize_model_for_provider(kwargs["model"])
     return client.chat.completions.create(**kwargs)
 
 
@@ -81,7 +87,7 @@ def get_domain(url: str) -> str:
 
 
 def run_prompt(prompt: str, model: str | None = None) -> PromptResult:
-    active_model = model or MODEL
+    active_model = normalize_model_for_provider(model or MODEL)
     queries: list[str] = []
     sources: list[LLMSource] = []  # every unique result, in order; index + 1 = its number
     number_of: dict[str, int] = {}  # url -> its number

@@ -3,14 +3,10 @@ import re
 import difflib
 from typing import Literal
 from pydantic import BaseModel
-from openai import OpenAI
-from app.config import MODEL
+from app.config import MODEL, get_llm_client, normalize_model_for_provider
 
 def get_client():
-    return OpenAI(
-        base_url="https://openrouter.ai/api/v1",
-        api_key=os.environ.get("OPENROUTER_API_KEY", ""),
-    )
+    return get_llm_client()
 
 
 class ExtractedBrandMention(BaseModel):
@@ -70,7 +66,7 @@ def analyze_answer(answer: str, target_brand: str) -> ExtractionResult:
     """
     client = get_client()
     response = client.beta.chat.completions.parse(
-        model=MODEL,
+        model=normalize_model_for_provider(MODEL),
         messages=[
             {
                 "role": "system",
