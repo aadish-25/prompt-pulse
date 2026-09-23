@@ -54,59 +54,92 @@ export default function KpiCards({ summary, activeProject }) {
     ? `${summary.top_competitors.length} Competitors`
     : (hasRuns ? '0 Competitors' : '0 Runs Executed');
 
-  // Mention Visibility Badge styling based on real percentage
+  // Mention Visibility styling based on real percentage
+  const isHighVisibility = hasRuns && visibilityNum >= 50;
+  const isModerateVisibility = hasRuns && visibilityNum >= 20 && visibilityNum < 50;
+  const isLowVisibility = hasRuns && visibilityNum < 20;
+
+  const getVisibilityCardStyle = () => {
+    if (!hasRuns) return 'border border-surface-border bg-surface-850';
+    if (isHighVisibility) return 'border border-emerald-500/30 bg-gradient-to-b from-emerald-500/5 to-transparent';
+    if (isModerateVisibility) return 'border border-amber-500/30 bg-gradient-to-b from-amber-500/5 to-transparent';
+    return 'border border-rose-500/25 bg-gradient-to-b from-rose-500/5 to-transparent';
+  };
+
   const getVisibilityBadge = () => {
     if (!hasRuns) return null;
-    if (visibilityNum >= 60) {
+    if (isHighVisibility) {
       return (
         <span className="text-xs text-emerald-400 font-medium flex items-center">
           <TrendingUp className="w-3.5 h-3.5 mr-0.5" /> High Share
         </span>
       );
     }
-    if (visibilityNum >= 25) {
+    if (isModerateVisibility) {
       return (
-        <span className="text-xs text-blue-400 font-medium flex items-center">
+        <span className="text-xs text-amber-400 font-medium flex items-center">
           <TrendingUp className="w-3.5 h-3.5 mr-0.5" /> Moderate Share
         </span>
       );
     }
-    if (visibilityNum > 0) {
-      return (
-        <span className="text-xs text-amber-400 font-medium flex items-center">
-          <TrendingDown className="w-3.5 h-3.5 mr-0.5" /> Low Share
-        </span>
-      );
-    }
     return (
-      <span className="text-xs text-slate-400 font-medium flex items-center">
-        0 Mentions
+      <span className="text-xs text-rose-400 font-medium flex items-center">
+        <TrendingDown className="w-3.5 h-3.5 mr-0.5" /> {visibilityNum === 0 ? '0% Visibility' : 'Low Share'}
       </span>
     );
   };
 
   // Target Domain Citation Styling based on real performance
-  const isHighCitation = citationNum >= 50;
-  const isModerateCitation = citationNum > 0 && citationNum < 50;
+  const isHighCitation = hasRuns && citationNum >= 50;
+  const isModerateCitation = hasRuns && citationNum > 0 && citationNum < 50;
+  const isZeroCitation = hasRuns && citationNum === 0;
+
+  const getCitationCardStyle = () => {
+    if (!hasRuns) return 'border border-surface-border bg-surface-850';
+    if (isHighCitation) return 'border border-emerald-500/30 bg-gradient-to-b from-emerald-500/5 to-transparent';
+    if (isModerateCitation) return 'border border-amber-500/30 bg-gradient-to-b from-amber-500/5 to-transparent';
+    return 'border border-rose-500/25 bg-gradient-to-b from-rose-500/5 to-transparent';
+  };
+
+  // Target Sentiment Card Styling
+  const isPositiveSentiment = hasRuns && dominantSentiment === 'positive' && dominantSentimentPct >= 50;
+  const isNegativeSentiment = hasRuns && dominantSentiment === 'negative';
+  const isNeutralSentiment = hasRuns && dominantSentiment === 'neutral';
+
+  const getSentimentCardStyle = () => {
+    if (!hasRuns) return 'border border-surface-border bg-surface-850';
+    if (isPositiveSentiment) return 'border border-emerald-500/30 bg-gradient-to-b from-emerald-500/5 to-transparent';
+    if (isNegativeSentiment) return 'border border-rose-500/25 bg-gradient-to-b from-rose-500/5 to-transparent';
+    if (isNeutralSentiment) return 'border border-amber-500/30 bg-gradient-to-b from-amber-500/5 to-transparent';
+    return 'border border-slate-700/60 bg-gradient-to-b from-slate-800/30 to-transparent';
+  };
 
   return (
     <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
       {/* Card 1: AI Mention Visibility */}
-      <div className="bg-surface-850 border border-surface-border rounded-xl p-3.5 flex flex-col justify-between">
+      <div className={`rounded-xl p-3.5 flex flex-col justify-between relative overflow-hidden transition-colors ${getVisibilityCardStyle()}`}>
         <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
-          <span className="font-medium text-slate-300">AI Mention Visibility</span>
+          <span className={`font-medium ${isHighVisibility ? 'text-emerald-200' : isModerateVisibility ? 'text-amber-200' : isLowVisibility ? 'text-rose-200' : 'text-slate-300'}`}>
+            AI Mention Visibility
+          </span>
           <span className={`px-2 py-0.5 rounded font-semibold text-[10px] border ${
-            visibilityNum >= 50
+            isHighVisibility
               ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-              : visibilityNum > 0
-                ? 'bg-blue-500/10 text-blue-300 border-blue-500/20'
-                : 'bg-slate-800 text-slate-400 border-slate-700'
+              : isModerateVisibility
+                ? 'bg-amber-500/10 text-amber-300 border-amber-500/20'
+                : isLowVisibility
+                  ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                  : 'bg-slate-800 text-slate-400 border-slate-700'
           }`}>
             {mentionedCount}/{totalRuns} Prompts
           </span>
         </div>
         <div className="flex items-baseline gap-2 my-1">
-          <span className="text-2xl font-bold text-white tracking-tight">{visibilityPct}%</span>
+          <span className={`text-2xl font-bold tracking-tight ${
+            isHighVisibility ? 'text-emerald-300' : isModerateVisibility ? 'text-amber-300' : isLowVisibility ? 'text-rose-300' : 'text-white'
+          }`}>
+            {visibilityPct}%
+          </span>
           {getVisibilityBadge()}
         </div>
         <p className="text-xs text-slate-400 mt-1 truncate">
@@ -117,15 +150,9 @@ export default function KpiCards({ summary, activeProject }) {
       </div>
 
       {/* Card 2: Target Domain Citations */}
-      <div className={`bg-surface-850 rounded-xl p-3.5 flex flex-col justify-between relative overflow-hidden transition-colors ${
-        isHighCitation
-          ? 'border border-emerald-500/30 bg-gradient-to-b from-emerald-500/5 to-transparent'
-          : isModerateCitation
-            ? 'border border-amber-500/30 bg-gradient-to-b from-amber-500/5 to-transparent'
-            : 'border border-surface-border'
-      }`}>
+      <div className={`rounded-xl p-3.5 flex flex-col justify-between relative overflow-hidden transition-colors ${getCitationCardStyle()}`}>
         <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
-          <span className={`font-medium ${isHighCitation ? 'text-emerald-200' : isModerateCitation ? 'text-amber-200' : 'text-slate-300'}`}>
+          <span className={`font-medium ${isHighCitation ? 'text-emerald-200' : isModerateCitation ? 'text-amber-200' : isZeroCitation ? 'text-rose-200' : 'text-slate-300'}`}>
             Target Domain Citations
           </span>
           <span className={`px-2 py-0.5 rounded font-semibold text-[10px] border truncate max-w-[140px] ${
@@ -133,19 +160,21 @@ export default function KpiCards({ summary, activeProject }) {
               ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'
               : isModerateCitation
                 ? 'bg-amber-500/10 text-amber-300 border-amber-500/20'
-                : 'bg-slate-800 text-slate-400 border-slate-700'
+                : isZeroCitation
+                  ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                  : 'bg-slate-800 text-slate-400 border-slate-700'
           }`} title={targetDomain}>
             {targetDomain || 'No domain tracked'}
           </span>
         </div>
         <div className="flex items-baseline gap-2 my-1">
           <span className={`text-2xl font-bold tracking-tight ${
-            isHighCitation ? 'text-emerald-300' : isModerateCitation ? 'text-amber-300' : 'text-white'
+            isHighCitation ? 'text-emerald-300' : isModerateCitation ? 'text-amber-300' : isZeroCitation ? 'text-rose-300' : 'text-white'
           }`}>
             {citationPct}%
           </span>
           <span className={`text-xs font-medium ${
-            isHighCitation ? 'text-emerald-400' : isModerateCitation ? 'text-amber-400' : 'text-slate-400'
+            isHighCitation ? 'text-emerald-400' : isModerateCitation ? 'text-amber-400' : isZeroCitation ? 'text-rose-400' : 'text-slate-400'
           }`}>
             {citedCount} of {totalRuns} cited
           </span>
@@ -155,6 +184,8 @@ export default function KpiCards({ summary, activeProject }) {
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
           ) : isModerateCitation ? (
             <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+          ) : isZeroCitation ? (
+            <AlertCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
           ) : (
             <HelpCircle className="w-3.5 h-3.5 text-slate-500 shrink-0" />
           )}
@@ -171,13 +202,17 @@ export default function KpiCards({ summary, activeProject }) {
       </div>
 
       {/* Card 3: Target Sentiment Score */}
-      <div className="bg-surface-850 border border-surface-border rounded-xl p-3.5 flex flex-col justify-between">
+      <div className={`rounded-xl p-3.5 flex flex-col justify-between relative overflow-hidden transition-colors ${getSentimentCardStyle()}`}>
         <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
-          <span className="font-medium text-slate-300">Target Sentiment</span>
+          <span className={`font-medium ${isPositiveSentiment ? 'text-emerald-200' : isNegativeSentiment ? 'text-rose-200' : isNeutralSentiment ? 'text-amber-200' : 'text-slate-300'}`}>
+            Target Sentiment
+          </span>
           <span className="text-xs text-slate-400">{totalRuns} evaluations</span>
         </div>
         <div className="flex items-baseline gap-2 my-1">
-          <span className="text-2xl font-bold text-white tracking-tight">
+          <span className={`text-2xl font-bold tracking-tight ${
+            isPositiveSentiment ? 'text-emerald-300' : isNegativeSentiment ? 'text-rose-300' : isNeutralSentiment ? 'text-amber-300' : 'text-white'
+          }`}>
             {hasRuns && dominantSentiment ? `${dominantSentimentPct}%` : 'N/A'}
           </span>
           <span className={`text-xs font-medium ${
