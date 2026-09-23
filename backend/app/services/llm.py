@@ -10,10 +10,11 @@ from app.services.search import search
 from app.services.citations import extract_cited
 from app.config import MAX_SEARCH_STEPS, MODEL, FORCE_MIN_SEARCHES, MIN_SEARCHES
 
-client = OpenAI(
-    base_url="https://openrouter.ai/api/v1",
-    api_key=os.environ["OPENROUTER_API_KEY"],
-)
+def get_client():
+    return OpenAI(
+        base_url="https://openrouter.ai/api/v1",
+        api_key=os.environ.get("OPENROUTER_API_KEY", ""),
+    )
 
 MAX_STEPS = MAX_SEARCH_STEPS + 1
 
@@ -24,6 +25,7 @@ MAX_STEPS = MAX_SEARCH_STEPS + 1
     reraise=True,
 )
 def _chat_completion_with_retry(**kwargs):
+    client = get_client()
     return client.chat.completions.create(**kwargs)
 
 
