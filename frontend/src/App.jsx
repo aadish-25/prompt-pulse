@@ -33,6 +33,7 @@ import {
     addPromptsBulk,
     createProject,
     deleteProject,
+    saveProjectCandidates,
     clearProjectResults,
     EMPTY_SUMMARY,
 } from "./api/client";
@@ -57,25 +58,41 @@ export default function App() {
     const [citations, setCitations] = useState([]);
     const [runs, setRuns] = useState([]);
 
-    // Prompt creator state — lifted and persisted in localStorage per project
+    // Prompt creator state — lifted and persisted directly in Neon DB
     const [candidates, setCandidates] = useState([]);
     const [selectedIds, setSelectedIds] = useState(new Set());
 
     // Execution config
     const [supportedModels, setSupportedModels] = useState([
-        "openai/gpt-4o-mini",
-        "google/gemini-2.5-flash",
-        "meta-llama/llama-3.3-70b-instruct",
-        "openai/gpt-4o",
+        "OR: openai/gpt-4o-mini",
+        "OR: google/gemini-2.5-flash",
+        "OR: meta-llama/llama-3.3-70b-instruct",
+        "OR: openai/gpt-4o",
+        "GROQ: openai/gpt-oss-120b",
+        "GROQ: qwen/qwen3.8-27b",
+        "GROQ: openai/gpt-oss-20b",
+        "AR: gpt-4o-mini",
+        "AR: gpt-4o",
+        "AR: claude-3-5-sonnet",
+        "AR: gemini-1.5-flash",
+        "AR: deepseek-chat",
+        "DS: deepseek-chat",
+        "DS: deepseek-reasoner",
     ]);
-    const [selectedModel, setSelectedModel] = useState("openai/gpt-4o-mini");
+    const [selectedModel, setSelectedModel] = useState("OR: openai/gpt-4o-mini");
     const [selectedRounds, setSelectedRounds] = useState(1);
 
-    // Sync candidates from localStorage when activeProjectId changes
+    // Sync candidates from real database (with localStorage fallback)
     useEffect(() => {
         if (!activeProjectId) {
             setCandidates([]);
             setSelectedIds(new Set());
+            return;
+        }
+        const proj = projects.find((p) => p.id === activeProjectId);
+        if (proj?.draft_candidates && Array.isArray(proj.draft_candidates) && proj.draft_candidates.length > 0) {
+            setCandidates(proj.draft_candidates);
+            setSelectedIds(new Set(proj.draft_candidates.map((c) => c.id)));
             return;
         }
         try {
@@ -93,12 +110,15 @@ export default function App() {
         }
         setCandidates([]);
         setSelectedIds(new Set());
-    }, [activeProjectId]);
+    }, [activeProjectId, projects]);
 
-    // Save candidates to state and localStorage
+    // Save candidates to real database & state
     const handleCandidatesChange = (newCandidates) => {
         setCandidates(newCandidates);
         if (activeProjectId) {
+            // Write directly to Neon PostgreSQL database
+            saveProjectCandidates(activeProjectId, newCandidates);
+            // Also keep local cache
             try {
                 if (newCandidates && newCandidates.length > 0) {
                     localStorage.setItem(

@@ -10,7 +10,12 @@ class ProjectCreate(BaseModel):
 
 class ProjectOut(ProjectCreate):
     id: int
+    draft_candidates: list[dict] = []
     model_config = {"from_attributes": True}
+
+
+class ProjectCandidatesUpdate(BaseModel):
+    candidates: list[dict]
 
 
 class PromptCreate(BaseModel):

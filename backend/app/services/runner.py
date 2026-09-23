@@ -28,7 +28,7 @@ def execute_single_execution(
         mentions = find_target_mentions(
             result.answer, project.brand_name, project.aliases
         )
-        analysis = analyze_answer(result.answer, project.brand_name)
+        analysis = analyze_answer(result.answer, project.brand_name, model=model)
 
         execution.raw_answer = result.answer
         execution.model = result.model

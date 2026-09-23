@@ -178,16 +178,17 @@ export default function Header({
               </button>
 
               {modelOpen && (
-                <div className="absolute top-full right-0 mt-1.5 w-64 bg-surface-850 border border-surface-border rounded-xl shadow-2xl z-50 p-1 space-y-0.5">
+                <div className="absolute top-full right-0 mt-1.5 w-72 max-h-80 overflow-y-auto bg-surface-850 border border-surface-border rounded-xl shadow-2xl z-50 p-1 space-y-0.5">
                   {supportedModels.map((m) => (
                     <button
                       key={m}
                       onClick={() => { onSelectModel(m); setModelOpen(false); }}
-                      className={`w-full text-left px-3 py-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
+                      className={`w-full text-left px-3 py-1.5 rounded-lg text-xs transition-colors cursor-pointer truncate ${
                         selectedModel === m
                           ? 'text-white bg-blue-500/10 border border-blue-500/20 font-semibold'
                           : 'text-slate-300 hover:bg-surface-800'
                       }`}
+                      title={m}
                     >
                       {m}
                     </button>

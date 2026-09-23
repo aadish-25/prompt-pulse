@@ -58,58 +58,72 @@ User defines a Project (brand name, domain, competitors, aliases)
 - **Brand-agnostic prompts** — the variant generator never names your brand or competitors in the queries. Queries reflect how a real, uninformed consumer would search.
 - **Fuzzy brand matching** — `difflib.SequenceMatcher` with a 0.82 threshold catches single-character typos (e.g. "Lenevo" → "Lenovo") in both mention detection and competitor filtering.
 - **Citation tracing** — every cited source `[X]` in the answer is matched back to the exact Tavily result URL and stored in the database.
-- **Provider-agnostic LLM routing** — all calls go through [OpenRouter](https://openrouter.ai), letting you switch between GPT-4o, Gemini 2.5 Flash, Claude Haiku, and Llama 3.3 from the UI header without touching code.
+- **Dynamic multi-provider LLM routing** — PromptPulse seamlessly routes requests across **OpenRouter (`OR:`)**, **Groq (`GROQ:`)**, **AgentRouter (`AR:`)**, and **DeepSeek (`DS:`)** using standard OpenAI-compatible client semantics. Select any model from the top navigation dropdown without modifying code.
 
 ---
 
-## Tech Stack
+## Supported Models & Providers
 
-| Layer | Technology |
-| :--- | :--- |
-| **Frontend** | React 18, Vite, Tailwind CSS, Lucide React |
-| **Backend** | FastAPI (Python), SQLAlchemy ORM |
-| **Database** | PostgreSQL |
-| **LLM Routing** | [OpenRouter](https://openrouter.ai) — `openai/gpt-4o-mini`, `openai/gpt-4o`, `google/gemini-2.5-flash`, `anthropic/claude-haiku-4.5`, `meta-llama/llama-3.3-70b-instruct` |
-| **Web Search** | [Tavily Search API](https://tavily.com) |
-| **Structured Outputs** | OpenAI `beta.chat.completions.parse` via OpenRouter |
+PromptPulse includes a curated multi-provider model pool accessible directly via the top navbar dropdown:
 
----
+| Prefix | Provider | Model ID in UI | Upstream Model Name | Best For / Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| `OR:` | **OpenRouter** | `OR: openai/gpt-4o-mini` | `openai/gpt-4o-mini` | Fast, cost-effective default for generation and evaluation |
+| `OR:` | **OpenRouter** | `OR: google/gemini-2.5-flash` | `google/gemini-2.5-flash` | High-quality reasoning, strong grounding & long-context synthesis |
+| `OR:` | **OpenRouter** | `OR: meta-llama/llama-3.3-70b-instruct` | `meta-llama/llama-3.3-70b-instruct` | Open-weights leader with strong instruction-following capabilities |
+| `OR:` | **OpenRouter** | `OR: openai/gpt-4o` | `openai/gpt-4o` | Flagship OpenAI frontier model for mission-critical benchmark runs |
+| `GROQ:` | **Groq** | `GROQ: openai/gpt-oss-120b` | `openai/gpt-oss-120b` | Ultra-fast LPU inference, native tool calling & structured outputs |
+| `GROQ:` | **Groq** | `GROQ: qwen/qwen3.8-27b` | `qwen/qwen3.8-27b` | Blazing-fast inference for rapid prompt variant ideation |
+| `GROQ:` | **Groq** | `GROQ: openai/gpt-oss-20b` | `openai/gpt-oss-20b` | Extremely lightweight, low-latency testing |
+| `AR:` | **AgentRouter** | `AR: gpt-4o-mini` | `gpt-4o-mini` | Balanced intelligence using AgentRouter community credit pool |
+| `AR:` | **AgentRouter** | `AR: gpt-4o` | `gpt-4o` | Frontier OpenAI model routed through AgentRouter |
+| `AR:` | **AgentRouter** | `AR: claude-3-5-sonnet` | `claude-3-5-sonnet` | Anthropic's top-tier reasoning and coding model (avoids overkill of Opus) |
+| `AR:` | **AgentRouter** | `AR: gemini-1.5-flash` | `gemini-1.5-flash` | Fast Google model on AgentRouter |
+| `AR:` | **AgentRouter** | `AR: deepseek-chat` | `deepseek-chat` | DeepSeek-V3 chat via AgentRouter |
+| `DS:` | **DeepSeek** | `DS: deepseek-chat` | `deepseek-chat` | Direct DeepSeek API (~$0.14/1M tokens, ultra-affordable) |
+| `DS:` | **DeepSeek** | `DS: deepseek-reasoner` | `deepseek-reasoner` | Direct DeepSeek-R1 reasoning model for deep evaluation analysis |
 
-## LLM Calls at a Glance
+### Other Available Models (Ready to Wire Up)
 
-PromptPulse makes exactly **3 types of LLM calls** across the pipeline:
+Because all four providers use standard OpenAI-compatible endpoints, you can add any of the following models simply by adding them to `SUPPORTED_MODELS` in `backend/app/config.py`:
 
-| # | Call | File | Method | Cost Driver |
-| :- | :--- | :--- | :--- | :--- |
-| 1 | **Prompt Variant Generation** | `variants.py` | `beta.chat.completions.parse` | ~1,000 tokens per 10 prompts |
-| 2 | **Search & Grounding Agent Loop** | `llm.py` | `chat.completions.create` + tool calls | ~25,000 tokens per prompt (accumulates across 5 turns) |
-| 3 | **Competitor & Sentiment Extraction** | `extraction.py` | `beta.chat.completions.parse` | ~625 tokens per prompt |
+* **Anthropic via OpenRouter / AgentRouter**:
+  * `OR: anthropic/claude-3.5-haiku` / `AR: claude-3-5-haiku` (Affordable, ultra-fast Claude model)
+  * `OR: anthropic/claude-3.7-sonnet` (Hybrid reasoning & thinking mode)
+* **Meta Llama Family**:
+  * `OR: meta-llama/llama-3.1-8b-instruct` / `GROQ: llama-3.1-8b-instant` (Very lightweight)
+  * `OR: meta-llama/llama-3.1-405b-instruct` (Massive open-weights foundation model)
+* **Qwen & Mistral Family**:
+  * `OR: qwen/qwen-2.5-72b-instruct` (Top multilingual benchmark performer)
+  * `OR: mistralai/mistral-large-2411` (Mistral's flagship enterprise model)
+* **Google Gemini Direct**:
+  * `OR: google/gemini-2.0-flash-exp` (Next-gen Gemini 2.0 experimental reasoning)
+  * `AR: gemini-1.5-pro` (Long-context 2M token analysis)
 
-> For a detailed per-turn token breakdown and cost matrix, see [`LLM_CALLS_AUDIT.md`](./LLM_CALLS_AUDIT.md).
-
----
-
-## Known Limitations
-
-- **Year injection in queries** — the model occasionally appends a year (e.g. "best shoes India 2024") to generated search queries despite the instruction to avoid it. This is a prompt-following limitation of smaller models.
-- **Brand website citations are rare** — brand-owned sites (e.g. boat-lifestyle.com, mamaearth.in) are built for selling, not for answering comparison questions. They use banner images rather than crawlable text, so Tavily rarely extracts anything quotable from them. Review sites and aggregators get cited instead.
-- **Tavily result quality for broad prompts** — Tavily's general-purpose crawler favours blog aggregators and minor retail sites over authoritative review outlets on some broad queries. Switching to provider-native grounding (OpenAI Responses API, Gemini Search) would improve this but sacrifices the provider-agnostic design.
+To add any new model, simply append `"PREFIX: actual-model-id"` into `SUPPORTED_MODELS` in `backend/app/config.py`.
 
 ---
 
 ## Environment Variables
 
-Create a `.env` file in the project root (`d:/prompt-pulse/.env`):
+Create a `.env` file in the project root:
 
 ```env
-# PostgreSQL connection string
-DATABASE_URL=postgresql://user:password@host:5432/dbname
+# PostgreSQL connection string (Neon, Supabase, or local PostgreSQL)
+DATABASE_URL=postgresql://user:password@host/dbname?sslmode=require
 
-# OpenRouter API key (https://openrouter.ai/keys)
-OPENROUTER_API_KEY=sk-or-...
-
-# Tavily Search API key (https://app.tavily.com)
+# Tavily Web Search API key (https://app.tavily.com)
 TAVILY_API_KEY=tvly-...
+
+# --- Provider API Keys (Set whichever you want to use) ---
+OPENROUTER_API_KEY=sk-or-v1-...
+GROQ_API_KEY=gsk_...
+AGENTROUTER_API_KEY=sk-...
+DEEPSEEK_API_KEY=sk-...
+
+# Optional Custom Gateway overrides
+# LLM_BASE_URL=https://gateway.ai.cloudflare.com/v1/...
+# LLM_API_KEY=sk-...
 ```
 
 ---

@@ -96,13 +96,13 @@ def generate_prompt_variants(
         else f"Generate {bounded_count} authentic discovery and evaluation search prompts for the product category of {brand_name} (Competitors: {competitors_str})."
     )
 
-    active_model = normalize_model_for_provider(model)
+    from app.config import resolve_llm
+    client, active_model = resolve_llm(model)
     print(
-        f"[LLM API Call] Sending variant request to model: '{active_model}' for brand: '{brand_name}' (topic='{seed_topic_str}', count={bounded_count})...",
+        f"[LLM API Call] Sending variant request to model: '{active_model}' (raw: '{model}') for brand: '{brand_name}' (topic='{seed_topic_str}', count={bounded_count})...",
         flush=True,
     )
 
-    client = get_client()
     response = client.beta.chat.completions.parse(
         model=active_model,
         messages=[
