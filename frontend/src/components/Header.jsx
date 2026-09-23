@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { Radar, ChevronDown, Cpu, Repeat, Play, Plus, Loader2, Trash2 } from 'lucide-react';
 import ConfirmDialog from './ConfirmDialog';
 
@@ -64,18 +65,22 @@ export default function Header({
       >
         {/* Left: Brand logo + project switcher */}
         <div className="flex items-center gap-5">
-          {/* Logo */}
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+          {/* Logo -> Clickable link to landing page */}
+          <Link
+            to="/"
+            className="flex items-center gap-2.5 group cursor-pointer hover:opacity-90 transition-opacity"
+            title="PromptPulse Home"
+          >
+            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform">
               <Radar className="w-5 h-5" />
             </div>
             <div>
-              <span className="font-bold tracking-tight text-white text-base">PromptPulse</span>
+              <span className="font-bold tracking-tight text-white text-base group-hover:text-blue-300 transition-colors">PromptPulse</span>
               <span className="ml-2 text-xs px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 font-semibold border border-blue-500/20">
                 GEO Tracker
               </span>
             </div>
-          </div>
+          </Link>
 
           <div className="h-5 w-px bg-surface-border" />
 
