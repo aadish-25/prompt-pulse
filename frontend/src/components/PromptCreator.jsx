@@ -121,19 +121,21 @@ export default function PromptCreator({
       )}
 
       {/* Action Bar */}
-      <div className="bg-surface-850 border border-surface-border rounded-xl p-5 space-y-3">
-        {/* Top Header Row: Title & Tagline on Left, Model Badge & Generate Button on Right */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
+      <div className="bg-surface-850 border border-surface-border rounded-xl overflow-hidden shadow-sm">
+        {/* Top Header Row: Left Info & Right Actions */}
+        <div className="px-5 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-surface-border">
+          <div className="flex items-center gap-3 min-w-0">
             <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
               <Sparkles className="w-4 h-4" />
             </div>
-            <div>
-              <h3 className="text-sm font-bold text-white leading-tight">
+            <div className="min-w-0">
+              <h3 className="text-sm font-semibold text-white leading-tight">
                 Brand-Aware Prompt Creator
-                {brandName !== 'Target Brand' && <span className="text-blue-400"> for {brandName}</span>}
+                {brandName !== 'Target Brand' && <span className="text-blue-400 font-normal"> for {brandName}</span>}
               </h3>
-              <p className="text-[11px] text-slate-500 mt-0.5">AI-powered consumer search query generator</p>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Deduces {brandName}&apos;s category and competitors to generate realistic consumer search questions.
+              </p>
             </div>
           </div>
 
@@ -155,13 +157,8 @@ export default function PromptCreator({
           </div>
         </div>
 
-        {/* Compact Description with subtle margin */}
-        <p className="text-xs text-slate-400 leading-relaxed pt-0.5">
-          Deduces {brandName}'s product category and competitive landscape to generate realistic consumer search questions.
-        </p>
-
-        {/* Custom prompt row */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 pt-2 border-t border-surface-border">
+        {/* Bottom Row: Custom prompt input */}
+        <div className="px-5 py-3 bg-surface-900/30 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
           <input
             type="text"
             value={customText}
@@ -247,17 +244,16 @@ export default function PromptCreator({
           </div>
         </div>
       ) : (
-        <div className="bg-surface-850 border border-surface-border rounded-xl p-12 text-center flex flex-col items-center justify-center gap-3.5">
-          <div className="w-11 h-11 mx-auto rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center">
-            <Sparkles className="w-5 h-5" />
+        <div className="bg-surface-850 border border-surface-border rounded-xl p-8 text-center">
+          <div className="w-9 h-9 mx-auto rounded-xl bg-surface-900 border border-surface-border text-slate-400 flex items-center justify-center mb-2.5">
+            <Sparkles className="w-4 h-4 text-blue-400" />
           </div>
-          <div className="max-w-md mx-auto">
-            <h4 className="text-sm font-bold text-white mb-2.5">No Prompt Candidates Yet</h4>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Click <strong className="text-slate-200">"Generate 10 New Prompts"</strong> above to discover realistic consumer search queries for{' '}
-              <strong className="text-slate-200">{brandName}</strong>, or type your own custom prompt above.
-            </p>
-          </div>
+          <h4 className="text-sm font-semibold text-white mb-1">
+            No prompt candidates yet
+          </h4>
+          <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
+            Click <span className="text-slate-200 font-medium">&ldquo;Generate 10 New Prompts&rdquo;</span> above to generate queries for {brandName}, or add your own custom query above.
+          </p>
         </div>
       )}
     </section>
