@@ -177,6 +177,9 @@ def generate_variants(
             intent_category=v.intent_category,
             rationale=v.rationale,
         )
+        for v in raw_variants
+    ]
+
     # Automatically persist newly generated draft candidates into PostgreSQL
     candidate_dicts = [
         {
