@@ -35,6 +35,7 @@ import {
     deleteProject,
     saveProjectCandidates,
     clearProjectResults,
+    deleteExecution,
     EMPTY_SUMMARY,
 } from "./api/client";
 
@@ -295,6 +296,25 @@ export default function App() {
         }
     };
 
+    const handleDeleteExecution = async (executionId) => {
+        try {
+            const ok = await deleteExecution(executionId);
+            if (ok) {
+                setRuns((prev) => prev.filter((r) => r.id !== executionId));
+                if (activeProjectId) {
+                    fetchProjectSummary(activeProjectId).then((s) => s && setSummary(s));
+                    fetchProjectCitations(activeProjectId).then((c) => c && setCitations(c));
+                }
+                showToast("Execution run deleted.");
+            } else {
+                showToast("Failed to delete execution.");
+            }
+        } catch (err) {
+            console.error("Failed to delete execution:", err);
+            showToast("Failed to delete execution.");
+        }
+    };
+
     const handleNavigateToGrounding = (run) => {
         if (run) setFocusedPromptId(run.prompt_id || run.id);
         setActiveTab("explorer");
@@ -440,6 +460,7 @@ export default function App() {
                                     focusedPromptId={focusedPromptId}
                                     activeProject={activeProject}
                                     onClearResults={handleClearResults}
+                                    onDeleteExecution={handleDeleteExecution}
                                 />
                             )}
                             {activeTab === "citations" && (

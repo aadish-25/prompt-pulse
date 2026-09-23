@@ -25,7 +25,32 @@ def project_results(
     )
     if round is not None:
         q = q.filter(models.PromptExecution.round == round)
-    return q.all()
+    results = q.all()
+    # Sort latest batch first (descending batch_id), then execution order within batch (ascending id)
+    results.sort(key=lambda x: (-(x.batch_id or 0), x.id))
+    return results
+
+
+@router.delete("/executions/{execution_id}", status_code=200)
+def delete_execution(execution_id: int, db: Session = Depends(get_db)):
+    execution = db.get(models.PromptExecution, execution_id)
+    if not execution:
+        raise HTTPException(404, "Execution not found")
+    batch_id = execution.batch_id
+    db.query(models.SearchQuery).filter_by(execution_id=execution.id).delete()
+    db.query(models.WebSearchResult).filter_by(execution_id=execution.id).delete()
+    db.query(models.BrandMention).filter_by(execution_id=execution.id).delete()
+    db.query(models.ExecutionAnalysis).filter_by(execution_id=execution.id).delete()
+    db.delete(execution)
+    db.commit()
+
+    if batch_id:
+        remaining = db.query(models.PromptExecution).filter_by(batch_id=batch_id).count()
+        if remaining == 0:
+            db.query(models.TrackingBatch).filter_by(id=batch_id).delete()
+            db.commit()
+
+    return {"message": "Execution deleted successfully", "deleted_id": execution_id}
 
 
 @router.delete("/projects/{project_id}/results")
