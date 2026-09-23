@@ -123,10 +123,45 @@ export default function PromptExplorer({
 
   const targetMentionsCount = activeRun?.brand_mentions?.length ?? 0;
   const projectDomains = activeProject?.domain || [];
-  const targetCited = projectDomains.length > 0 && allWebResults.some(
-    s => s.cited && projectDomains.some(d => s.domain?.toLowerCase().includes(d.toLowerCase()))
-  ) ? 1 : 0;
+  const targetCitedCount = projectDomains.length > 0
+    ? allWebResults.filter(
+        s => s.cited && projectDomains.some(d => s.domain?.toLowerCase().includes(d.toLowerCase()))
+      ).length
+    : 0;
   const totalCitations = citedSources.length;
+
+  const formatISTTime = (dateStr) => {
+    if (!dateStr) return '';
+    const cleanStr = (typeof dateStr === 'string' && !dateStr.endsWith('Z') && !dateStr.includes('+'))
+      ? dateStr + 'Z'
+      : dateStr;
+    try {
+      const d = new Date(cleanStr);
+      return d.toLocaleTimeString('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const formatSentiment = (s) => {
+    if (!s) return 'Neutral';
+    if (s.toLowerCase() === 'not_mentioned') return 'Not Mentioned';
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  };
+
+  const getSentimentPillStyle = (s) => {
+    if (!s || s.toLowerCase() === 'not_mentioned') {
+      return 'bg-slate-800 text-slate-400 border-slate-700';
+    }
+    if (s === 'positive') return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+    if (s === 'negative') return 'bg-rose-500/10 text-rose-400 border-rose-500/20';
+    return 'bg-blue-500/10 text-blue-300 border-blue-500/20';
+  };
 
   // Top competitor from the run's analysis, with count from the project-level summary if available
   const topCompetitorName = activeRun?.analysis?.other_brands?.[0] || 'None Detected';
@@ -186,7 +221,11 @@ export default function PromptExplorer({
             const globalIdx = startIndex + localIdx;
             const isSelected = globalIdx === selectedIndex;
             const mentionCount = run.brand_mentions?.length ?? 0;
-            const citedCountCard = run.web_search_results?.filter(s => s.cited)?.length ?? 0;
+            const targetCitedCountCard = projectDomains.length > 0
+              ? (run.web_search_results || []).filter(
+                  s => s.cited && projectDomains.some(d => s.domain?.toLowerCase().includes(d.toLowerCase()))
+                ).length
+              : 0;
             const durationSec = run.duration_ms ? Math.round(run.duration_ms / 1000) : null;
             const hasMention = mentionCount > 0;
             const modelShort = run.model ? run.model.replace(/^OR:\s*|^GROQ:\s*|^DS:\s*/i, '').split('/').pop() : null;
@@ -260,12 +299,12 @@ export default function PromptExplorer({
                 <div className="flex items-center justify-between mt-2 text-[11px] text-slate-400">
                   <div className="flex items-center gap-3">
                     <span><strong className="text-slate-200">{mentionCount}</strong> {mentionCount === 1 ? 'mention' : 'mentions'}</span>
-                    <span><strong className="text-slate-200">{citedCountCard}</strong> cited</span>
+                    <span><strong className="text-slate-200">{targetCitedCountCard}</strong> cited</span>
                     {durationSec != null && <span><strong className="text-slate-200">{durationSec}s</strong></span>}
                   </div>
                   {run.created_at && (
-                    <span className="text-[10px] text-slate-500 font-mono">
-                      {new Date(run.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    <span className="text-[10px] text-slate-500 font-mono" title={`${run.created_at} UTC`}>
+                      {formatISTTime(run.created_at)}
                     </span>
                   )}
                 </div>
@@ -279,7 +318,7 @@ export default function PromptExplorer({
       <div className="lg:col-span-7 bg-surface-850 border border-surface-border rounded-xl p-5 space-y-4">
         {/* Header & Prompt Title */}
         <div className="border-b border-surface-border pb-3.5 space-y-2.5">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs font-bold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2.5 py-1 rounded">
                 Prompt {selectedIndex + 1} Execution
@@ -296,27 +335,21 @@ export default function PromptExplorer({
               )}
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className={`text-xs px-2 py-0.5 rounded font-semibold flex items-center gap-1 capitalize ${
-                sentiment === 'positive'
-                  ? 'bg-emerald-500/10 text-emerald-400'
-                  : sentiment === 'negative'
-                    ? 'bg-rose-500/10 text-rose-400'
-                    : 'bg-amber-500/10 text-amber-400'
-              }`}>
-                <Smile className="w-3.5 h-3.5" />
-                <span>{sentiment} Sentiment</span>
+            <div className="flex items-center gap-2 shrink-0 flex-nowrap">
+              <span className={`text-xs px-2.5 py-1 rounded font-semibold flex items-center gap-1.5 whitespace-nowrap shrink-0 border ${getSentimentPillStyle(sentiment)}`}>
+                <Smile className="w-3.5 h-3.5 shrink-0" />
+                <span>{formatSentiment(sentiment)} Sentiment</span>
               </span>
 
               {onDeleteExecution && activeRun && (
                 <button
                   type="button"
                   onClick={() => onDeleteExecution(activeRun.id)}
-                  className="px-2 py-1 rounded text-xs font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-rose-500/20 flex items-center gap-1 transition-colors cursor-pointer"
+                  className="px-2.5 py-1 rounded text-xs font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-rose-500/20 flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 whitespace-nowrap"
                   title="Delete this execution run"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Delete Run</span>
+                  <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                  <span>Delete Run</span>
                 </button>
               )}
             </div>
@@ -333,7 +366,7 @@ export default function PromptExplorer({
               <span className="text-slate-400 text-[10px] uppercase font-semibold tracking-wider truncate block">
                 Target Mentions
               </span>
-              <span className="text-xl font-bold font-sans text-emerald-400 mt-1 block">
+              <span className="text-xl font-bold font-sans text-white mt-1 block">
                 {targetMentionsCount}
               </span>
             </div>
@@ -343,8 +376,8 @@ export default function PromptExplorer({
               <span className="text-slate-400 text-[10px] uppercase font-semibold tracking-wider truncate block">
                 Target Cited
               </span>
-              <span className="text-xl font-bold font-sans text-rose-500 mt-1 block">
-                {targetCited}
+              <span className="text-xl font-bold font-sans text-white mt-1 block">
+                {targetCitedCount}
               </span>
             </div>
 
