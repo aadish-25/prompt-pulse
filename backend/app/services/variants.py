@@ -36,33 +36,39 @@ class VariantGenerationResponse(BaseModel):
     variants: list[PromptVariant]
 
 
-SYSTEM_PROMPT = """You simulate real buyers and decision-makers typing into AI assistants (ChatGPT, Perplexity, Gemini) while researching an Indian market — BEFORE deciding which brand to pick. Generate the search prompts those buyers would actually type for Generative Engine Optimization (GEO) tracking.
+SYSTEM_PROMPT = """You simulate real buyers and decision-makers typing into AI assistants (ChatGPT, Perplexity, Gemini) while researching a product or service in India — BEFORE deciding which brand to pick. Generate the search prompts those buyers would actually type for Generative Engine Optimization (GEO) tracking.
 
 CONTEXT:
 TARGET BRAND: {brand_name}
-CATEGORY / SEED TOPIC: {seed_topic}
+CATEGORY / NICHE: {seed_topic}
 DOMAINS: {domains}
 KNOWN COMPETITORS: {competitors}
 BRAND ALIASES: {aliases}
-TARGET GEOGRAPHY: India (pricing in ₹, Indian workflow and regulatory contexts)
+TARGET GEOGRAPHY: India (pricing in ₹, Indian workflow and market context)
+CURRENT YEAR: 2026
 
-INTENT BUCKETS TO DISTRIBUTE ACROSS (Generate balanced quantities):
-1. 'core_need': Solution-agnostic problem solving (e.g. "how to automate GST invoicing for ecommerce").
-2. 'criteria': Specific evaluation factors (e.g. "fastest delivery", "uptime SLA", "local customer support").
-3. 'competitor': Seeking alternatives to established incumbents (e.g. "top alternatives to [Competitor]", "[Competitor] vs other options for small teams").
-4. 'persona': Specific buyer profiles or constraints (e.g. "for seed-stage startups", "for non-technical founders", "for high-volume retail").
-5. 'transaction': Realistic Indian budget limits or buying signals (e.g. "under ₹25,000", "free tier with API access", "monthly pricing in INR").
+PRIMARY OBJECTIVE:
+Deduce the EXACT product category of {brand_name} based on its name, domains ({domains}), and known competitors ({competitors}).
+Every single generated prompt MUST be strictly relevant to {brand_name}'s actual product domain (e.g. if {brand_name} makes laptops/PCs, every prompt must be about laptops, PCs, hardware, performance, cooling, or computing. NEVER generate prompts for unrelated industries like accounting, food, or generic SaaS).
+
+INTENT BUCKETS TO DISTRIBUTE ACROSS (balanced distribution):
+1. 'core_need': Category problem solving or jobs-to-be-done without naming any brand (e.g. for laptops: "best laptop for programming and machine learning", "lightweight laptop with long battery life").
+2. 'criteria': Evaluation factors specific to this category (e.g. specs, display quality, thermal management, build durability, after-sales service in India).
+3. 'competitor': Seeking alternatives to or comparing established incumbents from {competitors} (e.g. "top alternatives to [Competitor]", "[CompetitorA] vs [CompetitorB] for college students").
+4. 'persona': Specific buyer profiles or use cases (e.g. for coding, video editing, business travel, college students, CAD work).
+5. 'transaction': Realistic Indian budget limits or purchasing decisions (e.g. "under ₹50,000", "best value under ₹80,000", "student discounts in India").
 
 PROMPT STYLE & GROUNDING:
-- Length: 5 to 18 words. Avoid wordy essay prompts or formal survey questions.
-- Phrasing: Real search fragments (mix of lowercase queries, direct questions, and phrases with 'recommendations', 'with pros and cons', or 'according to reviews').
-- Natural variation: Rotate structures. Do NOT start multiple prompts with "Best...", "Which...", or "What is...".
+- Length: 5 to 18 words. Natural, punchy search phrasing as real users type into ChatGPT, Perplexity, or Gemini.
+- Phrasing: Mix of lowercase search fragments, direct questions, and phrases with 'according to reddit', 'with pros and cons', or 'user reviews'.
+- Varied structures: Do NOT start every prompt with "Best...", "Which...", or "What is...".
+- Current context: Year is 2026. Do NOT mention outdated years like 2023 or 2024.
 
 HARD RULES:
-1. NEVER include the target brand "{brand_name}", its aliases ({aliases}), or its domains ({domains}) in ANY prompt. The target brand must EARN the mention organically.
-2. You MAY and SHOULD mention known competitors ({competitors}) in 'competitor' bucket prompts to test displacement/conquesting visibility.
-3. Ground in real Indian market context (₹ figures, GST/UPI, Indian scale) unless the topic is explicitly global-only.
-4. Distribute roughly evenly across all 5 buckets.
+1. NEVER mention the target brand "{brand_name}", its aliases ({aliases}), or its official domains ({domains}) in ANY prompt. The target brand must earn the recommendation organically.
+2. You MAY mention known competitors ({competitors}) in the 'competitor' bucket to test displacement visibility.
+3. Every prompt MUST strictly fit {brand_name}'s actual category. Do NOT hallucinate unrelated software, accounting, or services.
+4. Distribute roughly evenly across the 5 intent buckets.
 
 Generate exactly {count} distinct prompt variants conforming to the JSON schema."""
 
@@ -80,7 +86,13 @@ def generate_prompt_variants(
     competitors_str = ", ".join(competitors) if competitors else "None specified"
     aliases_str = ", ".join(aliases) if aliases else "None"
     domains_str = ", ".join(domains) if domains else "None specified"
-    seed_topic_str = seed_topic.strip() if seed_topic else "Infer from brand context"
+    seed_topic_str = seed_topic.strip() if seed_topic else f"Deduced from {brand_name} and competitors ({competitors_str})"
+
+    user_content = (
+        f"Generate {bounded_count} authentic discovery and evaluation search prompts for {brand_name} in the category '{seed_topic.strip()}'."
+        if seed_topic and seed_topic.strip()
+        else f"Generate {bounded_count} authentic discovery and evaluation search prompts for the product category of {brand_name} (Competitors: {competitors_str})."
+    )
 
     print(
         f"[OpenRouter API Call] Sending variant request to model: '{model}' for brand: '{brand_name}' (topic='{seed_topic_str}', count={bounded_count})...",
@@ -104,7 +116,7 @@ def generate_prompt_variants(
             },
             {
                 "role": "user",
-                "content": f"Generate {bounded_count} authentic discovery and evaluation search prompts for {brand_name} in the category: {seed_topic_str}.",
+                "content": user_content,
             },
         ],
         response_format=VariantGenerationResponse,
