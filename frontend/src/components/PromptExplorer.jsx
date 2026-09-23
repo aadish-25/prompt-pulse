@@ -17,8 +17,6 @@ export default function PromptExplorer({
   const [sourceFilter, setSourceFilter] = useState('cited'); // 'cited' | 'all'
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
-  const [runToDelete, setRunToDelete] = useState(null);
-  const [isDeletingRun, setIsDeletingRun] = useState(false);
 
   // Sort latest batch first (descending batch_id), then prompt / execution order within batch (ascending id)
   const sortedRuns = React.useMemo(() => {
@@ -244,7 +242,7 @@ export default function PromptExplorer({
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setRunToDelete(run);
+                          onDeleteExecution(run.id);
                         }}
                         className="p-1 rounded text-slate-500 hover:text-rose-400 hover:bg-rose-500/15 transition-colors cursor-pointer"
                         title="Delete this execution run"
@@ -313,7 +311,7 @@ export default function PromptExplorer({
               {onDeleteExecution && activeRun && (
                 <button
                   type="button"
-                  onClick={() => setRunToDelete(activeRun)}
+                  onClick={() => onDeleteExecution(activeRun.id)}
                   className="px-2 py-1 rounded text-xs font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-rose-500/20 flex items-center gap-1 transition-colors cursor-pointer"
                   title="Delete this execution run"
                 >
@@ -558,25 +556,6 @@ export default function PromptExplorer({
           </div>
         </div>
       </div>
-
-      {/* Delete Individual Run Confirmation Modal */}
-      <ConfirmDialog
-        isOpen={!!runToDelete}
-        title="Delete Execution Run?"
-        description={`Permanently remove the execution for "${runToDelete?.prompt_text || 'this prompt'}" from Batch #${runToDelete?.batch_id ?? 'N/A'}. This will remove all search queries, grounding citations, and brand mentions for this run.`}
-        confirmLabel={isDeletingRun ? "Deleting..." : "Delete Run"}
-        onConfirm={async () => {
-          if (!runToDelete || !onDeleteExecution) return;
-          setIsDeletingRun(true);
-          try {
-            await onDeleteExecution(runToDelete.id);
-          } finally {
-            setIsDeletingRun(false);
-            setRunToDelete(null);
-          }
-        }}
-        onCancel={() => setRunToDelete(null)}
-      />
 
       {/* Clear All Confirmation Modal */}
       <ConfirmDialog
