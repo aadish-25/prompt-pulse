@@ -6,10 +6,11 @@ from pydantic import BaseModel
 from openai import OpenAI
 from app.config import MODEL
 
-client = OpenAI(
-    base_url="https://openrouter.ai/api/v1",
-    api_key=os.environ["OPENROUTER_API_KEY"],
-)
+def get_client():
+    return OpenAI(
+        base_url="https://openrouter.ai/api/v1",
+        api_key=os.environ.get("OPENROUTER_API_KEY", ""),
+    )
 
 
 class ExtractedBrandMention(BaseModel):
@@ -67,6 +68,7 @@ def analyze_answer(answer: str, target_brand: str) -> ExtractionResult:
     One combined LLM call: lists competitor brands and judges sentiment
     toward the target brand, with a short remark as evidence.
     """
+    client = get_client()
     response = client.beta.chat.completions.parse(
         model=MODEL,
         messages=[

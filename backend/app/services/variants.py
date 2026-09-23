@@ -3,10 +3,11 @@ from pydantic import BaseModel
 from openai import OpenAI
 from app.config import MODEL, DEFAULT_VARIANT_COUNT, MAX_VARIANT_COUNT
 
-client = OpenAI(
-    base_url="https://openrouter.ai/api/v1",
-    api_key=os.environ["OPENROUTER_API_KEY"],
-)
+def get_client():
+    return OpenAI(
+        base_url="https://openrouter.ai/api/v1",
+        api_key=os.environ.get("OPENROUTER_API_KEY", ""),
+    )
 
 
 class PromptVariant(BaseModel):
@@ -70,6 +71,7 @@ def generate_prompt_variants(
         flush=True,
     )
 
+    client = get_client()
     response = client.beta.chat.completions.parse(
         model=model,
         messages=[
