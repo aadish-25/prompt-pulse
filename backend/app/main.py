@@ -16,12 +16,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Include routers for local dev (where Vite rewrites /api -> /)
 app.include_router(projects.router)
 app.include_router(runs.router)
 app.include_router(results.router)
 
+# Also include with /api prefix for environments (like Vercel serverless) where /api/* is routed
+app.include_router(projects.router, prefix="/api")
+app.include_router(runs.router, prefix="/api")
+app.include_router(results.router, prefix="/api")
 
-Base.metadata.create_all(engine)
+
+if engine:
+    Base.metadata.create_all(engine)
 
 
 @app.get("/health")

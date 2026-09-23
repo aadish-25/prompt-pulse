@@ -2,9 +2,13 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 from app.config import DATABASE_URL
 
-# engine is the connection to db, ppol_pre_ping checks is a connection is still alive before using
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
-SessionLocal = sessionmaker(bind=engine)
+if DATABASE_URL:
+    # pool_pre_ping checks if a connection is still alive before using
+    engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+    SessionLocal = sessionmaker(bind=engine)
+else:
+    engine = None
+    SessionLocal = None
 
 
 class Base(DeclarativeBase):
