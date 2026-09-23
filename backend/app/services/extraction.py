@@ -79,6 +79,7 @@ def analyze_answer(answer: str, target_brand: str) -> ExtractionResult:
             {"role": "user", "content": answer},
         ],
         response_format=ExtractionResult,
+        max_tokens=600,
     )
 
     result = response.choices[0].message.parsed

@@ -26,6 +26,8 @@ MAX_STEPS = MAX_SEARCH_STEPS + 1
 )
 def _chat_completion_with_retry(**kwargs):
     client = get_client()
+    if "max_tokens" not in kwargs:
+        kwargs["max_tokens"] = 1500
     return client.chat.completions.create(**kwargs)
 
 

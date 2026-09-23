@@ -142,10 +142,9 @@ export async function fetchSupportedModels() {
         default_model: "openai/gpt-4o-mini",
         supported_models: [
             "openai/gpt-4o-mini",
-            "openai/gpt-4o",
             "google/gemini-2.5-flash",
-            "anthropic/claude-haiku-4.5:batch",
             "meta-llama/llama-3.3-70b-instruct",
+            "openai/gpt-4o",
         ],
     };
 }

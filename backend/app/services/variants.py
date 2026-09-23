@@ -120,6 +120,7 @@ def generate_prompt_variants(
             },
         ],
         response_format=VariantGenerationResponse,
+        max_tokens=2000,
     )
 
     parsed = response.choices[0].message.parsed
