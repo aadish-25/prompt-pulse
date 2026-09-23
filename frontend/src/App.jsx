@@ -57,20 +57,62 @@ export default function App() {
     const [citations, setCitations] = useState([]);
     const [runs, setRuns] = useState([]);
 
-    // Prompt creator state — lifted so candidates survive tab switches
+    // Prompt creator state — lifted and persisted in localStorage per project
     const [candidates, setCandidates] = useState([]);
     const [selectedIds, setSelectedIds] = useState(new Set());
 
     // Execution config
     const [supportedModels, setSupportedModels] = useState([
         "openai/gpt-4o-mini",
-        "openai/gpt-4o",
         "google/gemini-2.5-flash",
-        "anthropic/claude-haiku-4.5:batch",
         "meta-llama/llama-3.3-70b-instruct",
+        "openai/gpt-4o",
     ]);
     const [selectedModel, setSelectedModel] = useState("openai/gpt-4o-mini");
     const [selectedRounds, setSelectedRounds] = useState(1);
+
+    // Sync candidates from localStorage when activeProjectId changes
+    useEffect(() => {
+        if (!activeProjectId) {
+            setCandidates([]);
+            setSelectedIds(new Set());
+            return;
+        }
+        try {
+            const raw = localStorage.getItem(`promptpulse_candidates_${activeProjectId}`);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    setCandidates(parsed);
+                    setSelectedIds(new Set(parsed.map((c) => c.id)));
+                    return;
+                }
+            }
+        } catch (e) {
+            console.warn("Failed to load saved prompt candidates:", e);
+        }
+        setCandidates([]);
+        setSelectedIds(new Set());
+    }, [activeProjectId]);
+
+    // Save candidates to state and localStorage
+    const handleCandidatesChange = (newCandidates) => {
+        setCandidates(newCandidates);
+        if (activeProjectId) {
+            try {
+                if (newCandidates && newCandidates.length > 0) {
+                    localStorage.setItem(
+                        `promptpulse_candidates_${activeProjectId}`,
+                        JSON.stringify(newCandidates)
+                    );
+                } else {
+                    localStorage.removeItem(`promptpulse_candidates_${activeProjectId}`);
+                }
+            } catch (e) {
+                console.warn("Failed to save candidates to localStorage:", e);
+            }
+        }
+    };
 
     // Status flags
     const [isRunningBatch, setIsRunningBatch] = useState(false);
@@ -156,8 +198,6 @@ export default function App() {
     const handleSelectProject = async (proj) => {
         setActiveProjectId(proj.id);
         setActiveProject(proj);
-        setCandidates([]);
-        setSelectedIds(new Set());
         await loadProjectData(proj.id);
         if (location.pathname !== "/dashboard") {
             navigate("/dashboard");
@@ -417,7 +457,7 @@ export default function App() {
                                     selectedModel={selectedModel}
                                     candidates={candidates}
                                     selectedIds={selectedIds}
-                                    onCandidatesChange={setCandidates}
+                                    onCandidatesChange={handleCandidatesChange}
                                     onSelectedIdsChange={setSelectedIds}
                                     onAddPrompts={handleAddPrompts}
                                     onGenerateVariants={handleGenerateVariants}

@@ -12,11 +12,25 @@ export default function PromptExplorer({ runs = [], focusedPromptId = null, acti
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
 
-  // If focusedPromptId changes, switch to that run
+  // Pagination: 6 test prompts per page
+  const PAGE_SIZE = 6;
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(runs.length / PAGE_SIZE));
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [totalPages, currentPage]);
+
+  // If focusedPromptId changes, switch to that run and its page
   useEffect(() => {
     if (focusedPromptId != null && runs.length > 0) {
       const idx = runs.findIndex(r => r.prompt_id === focusedPromptId || r.id === focusedPromptId);
-      if (idx !== -1) setSelectedIndex(idx);
+      if (idx !== -1) {
+        setSelectedIndex(idx);
+        setCurrentPage(Math.floor(idx / PAGE_SIZE) + 1);
+      }
     }
   }, [focusedPromptId, runs]);
 
@@ -64,7 +78,16 @@ export default function PromptExplorer({ runs = [], focusedPromptId = null, acti
     );
   }
 
-  const activeRun = runs[selectedIndex] || runs[0];
+  const startIndex = (currentPage - 1) * PAGE_SIZE;
+  const displayedRuns = runs.slice(startIndex, startIndex + PAGE_SIZE);
+
+  const handlePageChange = (newPage) => {
+    const valid = Math.max(1, Math.min(totalPages, newPage));
+    setCurrentPage(valid);
+    setSelectedIndex((valid - 1) * PAGE_SIZE);
+  };
+
+  const activeRun = runs[selectedIndex] || displayedRuns[0] || runs[0];
 
   // Map each search result with its TRUE 1-based reference number from search retrieval order
   const allWebResults = (activeRun?.web_search_results || []).map((s, idx) => ({
@@ -112,11 +135,23 @@ export default function PromptExplorer({ runs = [], focusedPromptId = null, acti
                 <span>Clear All</span>
               </button>
             )}
-            <span>Page 1 of 1</span>
-            <button className="w-5 h-5 rounded flex items-center justify-center bg-surface-900 border border-surface-border text-slate-500 disabled:opacity-40" disabled>
+            <span>Page {currentPage} of {totalPages}</span>
+            <button
+              type="button"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage <= 1}
+              className="w-5 h-5 rounded flex items-center justify-center bg-surface-900 hover:bg-surface-800 border border-surface-border text-slate-300 disabled:opacity-30 disabled:hover:bg-surface-900 cursor-pointer disabled:cursor-not-allowed transition-colors"
+              title="Previous page"
+            >
               ‹
             </button>
-            <button className="w-5 h-5 rounded flex items-center justify-center bg-surface-900 border border-surface-border text-slate-500 disabled:opacity-40" disabled>
+            <button
+              type="button"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage >= totalPages}
+              className="w-5 h-5 rounded flex items-center justify-center bg-surface-900 hover:bg-surface-800 border border-surface-border text-slate-300 disabled:opacity-30 disabled:hover:bg-surface-900 cursor-pointer disabled:cursor-not-allowed transition-colors"
+              title="Next page"
+            >
               ›
             </button>
           </div>
@@ -124,8 +159,9 @@ export default function PromptExplorer({ runs = [], focusedPromptId = null, acti
 
         {/* Prompt Cards Stack */}
         <div className="space-y-2.5">
-          {runs.map((run, idx) => {
-            const isSelected = idx === selectedIndex;
+          {displayedRuns.map((run, localIdx) => {
+            const globalIdx = startIndex + localIdx;
+            const isSelected = globalIdx === selectedIndex;
             const mentionCount = run.brand_mentions?.length ?? 0;
             const citedCountCard = run.web_search_results?.filter(s => s.cited)?.length ?? 0;
             const durationSec = run.duration_ms ? Math.round(run.duration_ms / 1000) : null;
@@ -133,8 +169,8 @@ export default function PromptExplorer({ runs = [], focusedPromptId = null, acti
 
             return (
               <div
-                key={run.id || idx}
-                onClick={() => setSelectedIndex(idx)}
+                key={run.id || globalIdx}
+                onClick={() => setSelectedIndex(globalIdx)}
                 className={`cursor-pointer p-3.5 rounded-lg border transition-all ${
                   isSelected
                     ? 'border-blue-500/50 bg-blue-500/10'
@@ -147,7 +183,7 @@ export default function PromptExplorer({ runs = [], focusedPromptId = null, acti
                       ? 'text-white bg-surface-900 border-surface-border'
                       : 'text-slate-300 bg-surface-800 border-surface-border'
                   }`}>
-                    Prompt {idx + 1}
+                    Prompt {globalIdx + 1}
                   </span>
                   {run.status === 'failed' ? (
                     <span className="px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 font-medium text-[10px] border border-rose-500/20 flex items-center gap-1">

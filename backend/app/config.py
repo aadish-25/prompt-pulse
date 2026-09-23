@@ -11,10 +11,9 @@ MAX_SEARCH_STEPS = 5
 MODEL = "openai/gpt-4o-mini"
 SUPPORTED_MODELS = [
     "openai/gpt-4o-mini",
-    "openai/gpt-4o",
-    "anthropic/claude-haiku-4.5:batch",
     "google/gemini-2.5-flash",
     "meta-llama/llama-3.3-70b-instruct",
+    "openai/gpt-4o",
 ]
 
 # Search ground enforcement
