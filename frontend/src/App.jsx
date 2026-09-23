@@ -268,14 +268,17 @@ export default function App() {
         }
     };
 
-    const handleDeletePrompt = async (promptId) => {
-        setPrompts((prev) => prev.filter((p) => p.id !== promptId));
-        try {
-            await deletePrompt(promptId);
-        } catch (err) {
+    const handleDeletePrompt = (promptId) => {
+        let prevPrompts;
+        setPrompts((prev) => {
+            prevPrompts = prev;
+            return prev.filter((p) => p.id !== promptId);
+        });
+        deletePrompt(promptId).catch((err) => {
             console.error("Failed to delete prompt:", err);
-            await loadProjectData(activeProjectId);
-        }
+            if (prevPrompts) setPrompts(prevPrompts);
+            showToast("Failed to delete prompt.");
+        });
     };
 
     const handleClearResults = async () => {
@@ -296,23 +299,30 @@ export default function App() {
         }
     };
 
-    const handleDeleteExecution = async (executionId) => {
-        try {
-            const ok = await deleteExecution(executionId);
-            if (ok) {
-                setRuns((prev) => prev.filter((r) => r.id !== executionId));
-                if (activeProjectId) {
-                    fetchProjectSummary(activeProjectId).then((s) => s && setSummary(s));
-                    fetchProjectCitations(activeProjectId).then((c) => c && setCitations(c));
+    const handleDeleteExecution = (executionId) => {
+        let previousRuns;
+        setRuns((prev) => {
+            previousRuns = prev;
+            return prev.filter((r) => r.id !== executionId);
+        });
+
+        deleteExecution(executionId)
+            .then((ok) => {
+                if (ok) {
+                    if (activeProjectId) {
+                        fetchProjectSummary(activeProjectId).then((s) => s && setSummary(s));
+                        fetchProjectCitations(activeProjectId).then((c) => c && setCitations(c));
+                    }
+                } else {
+                    if (previousRuns) setRuns(previousRuns);
+                    showToast("Failed to delete execution on server.");
                 }
-                showToast("Execution run deleted.");
-            } else {
-                showToast("Failed to delete execution.");
-            }
-        } catch (err) {
-            console.error("Failed to delete execution:", err);
-            showToast("Failed to delete execution.");
-        }
+            })
+            .catch((err) => {
+                console.error("Failed to delete execution:", err);
+                if (previousRuns) setRuns(previousRuns);
+                showToast("Failed to delete execution on server.");
+            });
     };
 
     const handleNavigateToGrounding = (run) => {
