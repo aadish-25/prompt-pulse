@@ -47,33 +47,44 @@ DEFAULT_MODEL = "OR: openai/gpt-4o-mini"
 MODEL = DEFAULT_MODEL
 
 
+# Dictionary mapping provider prefixes to their Base URLs and API Keys
+PROVIDER_CONFIG = {
+    "OR": {
+        "base_url": OPENROUTER_BASE_URL,
+        "api_key": lambda: os.environ.get("OPENROUTER_API_KEY", OPENROUTER_API_KEY) or CUSTOM_LLM_API_KEY,
+    },
+    "GROQ": {
+        "base_url": GROQ_BASE_URL,
+        "api_key": lambda: os.environ.get("GROQ_API_KEY", GROQ_API_KEY) or CUSTOM_LLM_API_KEY,
+    },
+    "AR": {
+        "base_url": AGENTROUTER_BASE_URL,
+        "api_key": lambda: os.environ.get("AGENTROUTER_API_KEY", AGENTROUTER_API_KEY) or CUSTOM_LLM_API_KEY,
+    },
+    "DS": {
+        "base_url": DEEPSEEK_BASE_URL,
+        "api_key": lambda: os.environ.get("DEEPSEEK_API_KEY", DEEPSEEK_API_KEY) or CUSTOM_LLM_API_KEY,
+    },
+}
+
+
 def resolve_llm(model_name: str | None = None) -> tuple[OpenAI, str]:
     """
     Parses prefix from model_name (e.g. 'OR: openai/gpt-4o-mini', 'GROQ: openai/gpt-oss-120b',
-    'AR: gpt-4o-mini', 'DS: deepseek-chat') and returns an initialized OpenAI client
-    and the clean target model string for that provider.
+    'AR: gpt-4o-mini', 'DS: deepseek-chat') using PROVIDER_CONFIG dictionary and returns
+    an initialized OpenAI client with the matching Base URL and API Key.
     """
     raw = (model_name or MODEL or DEFAULT_MODEL).strip()
 
-    if raw.startswith("OR:") or raw.startswith("openrouter:"):
-        clean_model = raw.split(":", 1)[1].strip()
-        client = OpenAI(base_url=OPENROUTER_BASE_URL, api_key=OPENROUTER_API_KEY or CUSTOM_LLM_API_KEY)
-        return client, clean_model
+    if ":" in raw:
+        prefix, clean_model = raw.split(":", 1)
+        prefix = prefix.strip().upper()
+        clean_model = clean_model.strip()
 
-    if raw.startswith("GROQ:") or raw.startswith("groq:"):
-        clean_model = raw.split(":", 1)[1].strip()
-        client = OpenAI(base_url=GROQ_BASE_URL, api_key=GROQ_API_KEY or CUSTOM_LLM_API_KEY)
-        return client, clean_model
-
-    if raw.startswith("AR:") or raw.startswith("agentrouter:"):
-        clean_model = raw.split(":", 1)[1].strip()
-        client = OpenAI(base_url=AGENTROUTER_BASE_URL, api_key=AGENTROUTER_API_KEY or CUSTOM_LLM_API_KEY)
-        return client, clean_model
-
-    if raw.startswith("DS:") or raw.startswith("deepseek:"):
-        clean_model = raw.split(":", 1)[1].strip()
-        client = OpenAI(base_url=DEEPSEEK_BASE_URL, api_key=DEEPSEEK_API_KEY or CUSTOM_LLM_API_KEY)
-        return client, clean_model
+        cfg = PROVIDER_CONFIG.get(prefix)
+        if cfg:
+            client = OpenAI(base_url=cfg["base_url"], api_key=cfg["api_key"]())
+            return client, clean_model
 
     # Fallback for models without prefix
     if CUSTOM_LLM_BASE_URL and CUSTOM_LLM_API_KEY:
@@ -81,15 +92,15 @@ def resolve_llm(model_name: str | None = None) -> tuple[OpenAI, str]:
         return client, raw
 
     if raw.startswith("openai/") or raw.startswith("google/") or raw.startswith("meta-llama/"):
-        client = OpenAI(base_url=OPENROUTER_BASE_URL, api_key=OPENROUTER_API_KEY or CUSTOM_LLM_API_KEY)
+        client = OpenAI(base_url=OPENROUTER_BASE_URL, api_key=os.environ.get("OPENROUTER_API_KEY", OPENROUTER_API_KEY))
         return client, raw
 
     if GROQ_API_KEY and not OPENROUTER_API_KEY:
-        client = OpenAI(base_url=GROQ_BASE_URL, api_key=GROQ_API_KEY)
+        client = OpenAI(base_url=GROQ_BASE_URL, api_key=os.environ.get("GROQ_API_KEY", GROQ_API_KEY))
         return client, raw
 
     if AGENTROUTER_API_KEY and not OPENROUTER_API_KEY:
-        client = OpenAI(base_url=AGENTROUTER_BASE_URL, api_key=AGENTROUTER_API_KEY)
+        client = OpenAI(base_url=AGENTROUTER_BASE_URL, api_key=os.environ.get("AGENTROUTER_API_KEY", AGENTROUTER_API_KEY))
         return client, raw
 
     # Default fallback to OpenRouter
