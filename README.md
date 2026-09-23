@@ -214,6 +214,27 @@ All runtime configuration lives in [`backend/app/config.py`](./backend/app/confi
 
 ---
 
+## Future Scope & Architectural Roadmap
+
+Studying open-source GEO systems (**Canonry**, **Elmo**, **GEO/AEO Tracker**) highlights several high-impact capabilities slated for future database schema expansions:
+
+### 1. Intent-Categorized Prompts in PostgreSQL
+* **Current**: The `prompts` table stores `(id, project_id, text, active, created_at)`. Intent buckets (`core_need`, `criteria`, `competitor`, `persona`, `transaction`) are generated and displayed on candidate cards in the UI.
+* **Roadmap**: Add an `intent_category: Mapped[str]` column to the `prompts` table so selected prompts retain their classification permanently in the tracking queue.
+
+### 2. Segmented Intent Visibility Analytics
+* **Current**: Brand visibility is computed as an aggregate percentage across all prompt runs in a project.
+* **Roadmap**: Calculate visibility and sentiment broken down by intent bucket (e.g. *"85% visibility on Core Need queries, but only 20% visibility on Competitor Conquest queries"*), exposing exactly where competitors are displacing your brand in AI answers.
+
+### 3. Persistent Brand ICP & Category Context
+* **Current**: Brands define name, domain, competitors, and aliases.
+* **Roadmap**: Add `icp_description` and `seed_topic` columns to the `projects` table so niche, early-stage, or ambiguous startups (e.g. *"Sprint"*, *"Orbit"*) maintain permanent category anchoring across all variant generations and evaluation runs without manual re-entry.
+
+### 4. Search Trigger & Retrieval Fan-Out Tracking
+* **Roadmap**: Track whether source-seeking triggers (*"based on reviews"*, *"what do developers recommend on reddit"*, *"with pros and cons"*) cause answer engines to expand search queries (fan-out) versus answering from internal parametric memory.
+
+---
+
 ## Contributing
 
 1. Fork the repository

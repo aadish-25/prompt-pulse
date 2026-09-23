@@ -151,12 +151,14 @@ def generate_variants(
     project = get_project_or_404(db, project_id)
     count = body.count if body else 10
     selected_model = (body.model.strip() if body and body.model else None) or MODEL
+    seed_topic = (body.seed_topic.strip() if body and body.seed_topic else None)
 
     print("\n" + "=" * 60)
     print(f"[VARIANT GENERATION REQUEST]")
     print(f"  Project:    {project.brand_name} (ID: {project.id})")
     print(f"  Model:      {selected_model}")
     print(f"  Count:      {count}")
+    print(f"  Seed Topic: {seed_topic or 'Auto-deduce'}")
     print("=" * 60 + "\n", flush=True)
 
     raw_variants = generate_prompt_variants(
@@ -165,6 +167,7 @@ def generate_variants(
         competitors=project.competitors,
         aliases=project.aliases,
         domains=project.domain,
+        seed_topic=seed_topic,
         model=selected_model,
     )
 
@@ -180,5 +183,6 @@ def generate_variants(
     return schemas.VariantGenerateResponse(
         brand_name=project.brand_name,
         variants=variants_out,
+        seed_topic=seed_topic,
         model=selected_model,
     )

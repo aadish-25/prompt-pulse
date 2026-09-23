@@ -273,17 +273,26 @@ export async function deleteProject(projectId) {
     return true;
 }
 
+const INTENT_LABELS = {
+    core_need: "Core Need",
+    criteria: "Criteria",
+    competitor: "Competitor Conquest",
+    persona: "Persona / Use Case",
+    transaction: "Pricing & Budget",
+};
+
 /**
  * Generate brand-aware search prompt variants via backend LLM.
  */
 export async function generatePromptVariants(
-    projectId = 4,
+    projectId,
     count = 10,
     model = null,
+    seedTopic = null,
 ) {
     try {
         console.log(
-            `[GEO Prompt Generator] Sending generate request for Project #${projectId} with Model: "${model || "default"}"`,
+            `[GEO Prompt Generator] Sending generate request for Project #${projectId} with Model: "${model || "default"}" (Topic: ${seedTopic || "Auto"})`,
         );
         const res = await fetch(
             `${API_BASE}/projects/${projectId}/prompts/generate-variants`,
@@ -293,6 +302,7 @@ export async function generatePromptVariants(
                 body: JSON.stringify({
                     count: Math.min(count, 10),
                     model: model || undefined,
+                    seed_topic: seedTopic || undefined,
                 }),
             },
         );
@@ -307,7 +317,7 @@ export async function generatePromptVariants(
                     model: data.model || model,
                     variants: data.variants.map((v) => ({
                         prompt: v.text,
-                        topic: v.intent_category || "Consumer Query",
+                        topic: INTENT_LABELS[v.intent_category] || v.intent_category || "Consumer Query",
                         intent: "Natural Search",
                         rationale: v.rationale,
                     })),
@@ -317,7 +327,7 @@ export async function generatePromptVariants(
     } catch (e) {
         console.warn("Variant generator API unavailable:", e);
     }
-    return { variants: projectId === 4 ? FALLBACK_VARIANTS : [], model };
+    return { variants: [], model };
 }
 
 /**
