@@ -479,14 +479,20 @@ export default function PromptExplorer({
             </div>
           </div>
 
-          <div className="border border-surface-border rounded-lg max-h-56 overflow-y-auto overflow-x-auto custom-scrollbar">
-            <table className="w-full text-left text-xs font-sans">
+          <div className="border border-surface-border rounded-lg max-h-56 overflow-y-auto overflow-x-hidden custom-scrollbar">
+            <table className="w-full table-fixed text-left text-xs font-sans">
+              <colgroup>
+                <col className="w-[52px]" />
+                <col className="w-[130px]" />
+                <col />
+                <col className="w-[88px]" />
+              </colgroup>
               <thead className="bg-surface-800 text-slate-400 border-b border-surface-border sticky top-0 z-10">
                 <tr>
-                  <th className="py-2.5 px-3 font-semibold w-14 shrink-0 text-blue-400">Ref</th>
-                  <th className="py-2.5 px-3 font-medium w-40 shrink-0">Domain</th>
+                  <th className="py-2.5 px-3 font-semibold text-blue-400">Ref</th>
+                  <th className="py-2.5 px-3 font-medium">Domain</th>
                   <th className="py-2.5 px-3 font-medium">Article Title & URL</th>
-                  <th className="py-2.5 px-3 font-medium text-right w-24 shrink-0 pr-4">Status</th>
+                  <th className="py-2.5 px-3 font-medium text-right pr-3">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-border text-slate-300">
@@ -499,24 +505,26 @@ export default function PromptExplorer({
                       [{source.refNumber}]
                     </td>
                     <td className="py-2.5 px-3 text-white font-medium whitespace-nowrap">
-                      <span className="truncate block max-w-[150px]" title={source.domain}>
+                      <span className="truncate block" title={source.domain}>
                         {source.domain}
                       </span>
                     </td>
-                    <td className="py-2.5 px-3 text-slate-300">
+                    <td className="py-2.5 px-3 min-w-0">
                       <a 
                         href={source.url} 
                         target="_blank" 
                         rel="noopener noreferrer" 
-                        className="font-medium text-white hover:text-blue-400 flex items-center gap-1.5 transition-colors group"
+                        className="font-medium text-white hover:text-blue-400 flex items-center gap-1.5 transition-colors group min-w-0"
                         title={source.title || source.url}
                       >
                         <span className="truncate">{source.title || source.domain}</span>
                         <ExternalLink className="w-3 h-3 text-slate-500 group-hover:text-blue-400 shrink-0" />
                       </a>
-                      <div className="text-[10px] text-slate-500 truncate max-w-md" title={source.url}>{source.url}</div>
+                      <div className="text-[10px] text-slate-500 truncate" title={source.url}>
+                        {source.url}
+                      </div>
                     </td>
-                    <td className="py-2.5 px-3 text-right whitespace-nowrap pr-4">
+                    <td className="py-2.5 px-3 text-right whitespace-nowrap pr-3">
                       {source.cited ? (
                         <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/20 inline-flex items-center gap-1">
                           <Check className="w-3 h-3" /> Cited
