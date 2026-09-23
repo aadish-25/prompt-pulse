@@ -1,15 +1,17 @@
 import os
 from enum import Enum
 from pydantic import BaseModel, Field
-from openai import OpenAI
-from app.config import MODEL, DEFAULT_VARIANT_COUNT, MAX_VARIANT_COUNT
+from app.config import (
+    MODEL,
+    DEFAULT_VARIANT_COUNT,
+    MAX_VARIANT_COUNT,
+    get_llm_client,
+    normalize_model_for_provider,
+)
 
 
 def get_client():
-    return OpenAI(
-        base_url="https://openrouter.ai/api/v1",
-        api_key=os.environ.get("OPENROUTER_API_KEY", ""),
-    )
+    return get_llm_client()
 
 
 class IntentCategory(str, Enum):
@@ -94,14 +96,15 @@ def generate_prompt_variants(
         else f"Generate {bounded_count} authentic discovery and evaluation search prompts for the product category of {brand_name} (Competitors: {competitors_str})."
     )
 
+    active_model = normalize_model_for_provider(model)
     print(
-        f"[OpenRouter API Call] Sending variant request to model: '{model}' for brand: '{brand_name}' (topic='{seed_topic_str}', count={bounded_count})...",
+        f"[LLM API Call] Sending variant request to model: '{active_model}' for brand: '{brand_name}' (topic='{seed_topic_str}', count={bounded_count})...",
         flush=True,
     )
 
     client = get_client()
     response = client.beta.chat.completions.parse(
-        model=model,
+        model=active_model,
         messages=[
             {
                 "role": "system",
