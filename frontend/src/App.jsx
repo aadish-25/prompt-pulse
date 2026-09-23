@@ -94,15 +94,13 @@ export default function App() {
             return;
         }
         try {
-            const [projData, sumData, citData, runsData, promptsData] =
+            const [sumData, citData, runsData, promptsData] =
                 await Promise.all([
-                    fetchProject(projId),
                     fetchProjectSummary(projId),
                     fetchProjectCitations(projId),
                     fetchProjectResults(projId),
                     fetchProjectPrompts(projId),
                 ]);
-            if (projData) setActiveProject(projData);
             setSummary(sumData || EMPTY_SUMMARY);
             setCitations(citData || []);
             setRuns(runsData || []);
@@ -123,8 +121,7 @@ export default function App() {
 
                 if (projList && projList.length > 0) {
                     setProjects(projList);
-                    const defaultProj =
-                        projList.find((p) => p.id === 4) || projList[0];
+                    const defaultProj = projList[0];
                     setActiveProjectId(defaultProj.id);
                     setActiveProject(defaultProj);
                     await loadProjectData(defaultProj.id);

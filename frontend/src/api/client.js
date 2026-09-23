@@ -16,14 +16,14 @@ export async function fetchProjects() {
 /**
  * Fetch a single project by ID.
  */
-export async function fetchProject(projectId = 4) {
+export async function fetchProject(projectId) {
     try {
         const res = await fetch(`${API_BASE}/projects/${projectId}`);
         if (res.ok) return await res.json();
     } catch (e) {
-        console.warn("API unavailable, using fallback project", e);
+        console.warn("API unavailable, could not fetch project", e);
     }
-    return FALLBACK_PROJECT;
+    return null;
 }
 
 export const EMPTY_SUMMARY = {
@@ -40,33 +40,33 @@ export const EMPTY_SUMMARY = {
 /**
  * Fetch summary diagnostic metrics for a project.
  */
-export async function fetchProjectSummary(projectId = 4) {
+export async function fetchProjectSummary(projectId) {
     try {
         const res = await fetch(`${API_BASE}/projects/${projectId}/summary`);
         if (res.ok) return await res.json();
     } catch (e) {
         console.warn("API unavailable, using fallback summary", e);
     }
-    return projectId === 4 ? FALLBACK_SUMMARY : EMPTY_SUMMARY;
+    return EMPTY_SUMMARY;
 }
 
 /**
  * Fetch domain citation stats for a project.
  */
-export async function fetchProjectCitations(projectId = 4) {
+export async function fetchProjectCitations(projectId) {
     try {
         const res = await fetch(`${API_BASE}/projects/${projectId}/citations`);
         if (res.ok) return await res.json();
     } catch (e) {
         console.warn("API unavailable, using fallback citations", e);
     }
-    return projectId === 4 ? FALLBACK_CITATIONS : [];
+    return [];
 }
 
 /**
  * Fetch all execution runs for a project directly from the database.
  */
-export async function fetchProjectResults(projectId = 4) {
+export async function fetchProjectResults(projectId) {
     try {
         const res = await fetch(`${API_BASE}/projects/${projectId}/results`);
         if (res.ok) {
@@ -76,7 +76,7 @@ export async function fetchProjectResults(projectId = 4) {
     } catch (e) {
         console.warn("API unavailable, using fallback results", e);
     }
-    return projectId === 4 ? FALLBACK_RUNS : [];
+    return [];
 }
 
 /**
