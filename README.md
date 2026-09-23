@@ -59,6 +59,9 @@ User defines a Project (brand name, domain, competitors, aliases)
 - **Fuzzy brand matching** — `difflib.SequenceMatcher` with a 0.82 threshold catches single-character typos (e.g. "Lenevo" → "Lenovo") in both mention detection and competitor filtering.
 - **Citation tracing** — every cited source `[X]` in the answer is matched back to the exact Tavily result URL and stored in the database.
 - **Dynamic multi-provider LLM routing** — PromptPulse seamlessly routes requests across **OpenRouter (`OR:`)**, **Groq (`GROQ:`)**, **AgentRouter (`AR:`)**, and **DeepSeek (`DS:`)** using standard OpenAI-compatible client semantics. Select any model from the top navigation dropdown without modifying code.
+- **Batch-first chronological sorting** — prompt executions are automatically ordered with the latest batch first (`-(batch_id or 0), id ASC`) and labeled with crisp rectangular batch badges.
+- **Optimistic UI deletions** — single execution deletions update the frontend state instantaneously (0ms user lag) while cascading removals occur asynchronously in the background.
+- **Scroll-free grounding table** — table-fixed layout with calculated widths and auto-truncation (`...`) eliminates horizontal scrollbars completely.
 
 ---
 
@@ -222,6 +225,7 @@ All runtime configuration lives in [`backend/app/config.py`](./backend/app/confi
 | `POST` | `/api/projects/{id}/batches` | Start a batch execution run |
 | `GET` | `/api/projects/{id}/results` | Get all execution results |
 | `DELETE` | `/api/projects/{id}/results` | Clear all results for a project |
+| `DELETE` | `/api/executions/{id}` | Cascade delete a single prompt execution |
 
 ---
 
