@@ -95,6 +95,21 @@ export async function clearProjectResults(projectId) {
 }
 
 /**
+ * Delete an individual prompt execution run.
+ */
+export async function deleteExecution(executionId) {
+    try {
+        const res = await fetch(`${API_BASE}/executions/${executionId}`, {
+            method: "DELETE",
+        });
+        return res.ok;
+    } catch (e) {
+        console.warn("Failed to delete execution", e);
+        return false;
+    }
+}
+
+/**
  * Fetch batch execution runs (maps to project results for seamless compatibility).
  */
 export async function fetchBatchRuns(projectIdOrBatchId = 4) {

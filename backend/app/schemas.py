@@ -1,3 +1,4 @@
+from datetime import datetime
 from pydantic import BaseModel, Field
 
 
@@ -88,6 +89,8 @@ class WebSearchResultOut(BaseModel):
 class PromptExecutionOut(BaseModel):
     id: int
     prompt_id: int
+    batch_id: int | None = None
+    created_at: datetime | None = None
     prompt_text: str | None = None
     round: int
     status: str

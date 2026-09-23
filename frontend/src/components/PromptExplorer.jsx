@@ -6,16 +6,34 @@ import ConfirmDialog from './ConfirmDialog';
  * PromptExplorer (AI Answers & Grounding) - Deep-dive execution inspector.
  * Accurately aligns citation numbers between the AI answer and the sources table.
  */
-export default function PromptExplorer({ runs = [], focusedPromptId = null, activeProject = null, onClearResults = null }) {
+export default function PromptExplorer({
+  runs = [],
+  focusedPromptId = null,
+  activeProject = null,
+  onClearResults = null,
+  onDeleteExecution = null
+}) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [sourceFilter, setSourceFilter] = useState('cited'); // 'cited' | 'all'
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
+  const [runToDelete, setRunToDelete] = useState(null);
+  const [isDeletingRun, setIsDeletingRun] = useState(false);
+
+  // Sort latest batch first (descending batch_id), then prompt / execution order within batch (ascending id)
+  const sortedRuns = React.useMemo(() => {
+    return [...runs].sort((a, b) => {
+      const batchA = a.batch_id ?? 0;
+      const batchB = b.batch_id ?? 0;
+      if (batchB !== batchA) return batchB - batchA; // Latest batch first
+      return (a.id ?? 0) - (b.id ?? 0); // Prompt order within batch
+    });
+  }, [runs]);
 
   // Pagination: 6 test prompts per page
   const PAGE_SIZE = 6;
   const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = Math.max(1, Math.ceil(runs.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(sortedRuns.length / PAGE_SIZE));
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -23,18 +41,25 @@ export default function PromptExplorer({ runs = [], focusedPromptId = null, acti
     }
   }, [totalPages, currentPage]);
 
+  // Keep selectedIndex within valid range when runs are deleted
+  useEffect(() => {
+    if (selectedIndex >= sortedRuns.length && sortedRuns.length > 0) {
+      setSelectedIndex(sortedRuns.length - 1);
+    }
+  }, [sortedRuns.length, selectedIndex]);
+
   // If focusedPromptId changes, switch to that run and its page
   useEffect(() => {
-    if (focusedPromptId != null && runs.length > 0) {
-      const idx = runs.findIndex(r => r.prompt_id === focusedPromptId || r.id === focusedPromptId);
+    if (focusedPromptId != null && sortedRuns.length > 0) {
+      const idx = sortedRuns.findIndex(r => r.prompt_id === focusedPromptId || r.id === focusedPromptId);
       if (idx !== -1) {
         setSelectedIndex(idx);
         setCurrentPage(Math.floor(idx / PAGE_SIZE) + 1);
       }
     }
-  }, [focusedPromptId, runs]);
+  }, [focusedPromptId, sortedRuns]);
 
-  if (!runs || runs.length === 0) {
+  if (!sortedRuns || sortedRuns.length === 0) {
     return (
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         {/* Left column — prompt list */}
@@ -79,7 +104,7 @@ export default function PromptExplorer({ runs = [], focusedPromptId = null, acti
   }
 
   const startIndex = (currentPage - 1) * PAGE_SIZE;
-  const displayedRuns = runs.slice(startIndex, startIndex + PAGE_SIZE);
+  const displayedRuns = sortedRuns.slice(startIndex, startIndex + PAGE_SIZE);
 
   const handlePageChange = (newPage) => {
     const valid = Math.max(1, Math.min(totalPages, newPage));
@@ -87,7 +112,7 @@ export default function PromptExplorer({ runs = [], focusedPromptId = null, acti
     setSelectedIndex((valid - 1) * PAGE_SIZE);
   };
 
-  const activeRun = runs[selectedIndex] || displayedRuns[0] || runs[0];
+  const activeRun = sortedRuns[selectedIndex] || displayedRuns[0] || sortedRuns[0];
 
   // Map each search result with its TRUE 1-based reference number from search retrieval order
   const allWebResults = (activeRun?.web_search_results || []).map((s, idx) => ({
@@ -120,10 +145,10 @@ export default function PromptExplorer({ runs = [], focusedPromptId = null, acti
         <div className="flex items-center justify-between pb-2 border-b border-surface-border text-xs">
           <div>
             <span className="font-bold text-white">Executed Test Prompts</span>
-            <span className="text-slate-500 text-[11px] ml-1">({runs.length} Evaluated)</span>
+            <span className="text-slate-500 text-[11px] ml-1">({sortedRuns.length} Evaluated)</span>
           </div>
           <div className="flex items-center gap-2 text-[11px] text-slate-400">
-            {runs.length > 0 && onClearResults && (
+            {sortedRuns.length > 0 && onClearResults && (
               <button
                 type="button"
                 onClick={() => setShowClearConfirm(true)}
@@ -166,6 +191,7 @@ export default function PromptExplorer({ runs = [], focusedPromptId = null, acti
             const citedCountCard = run.web_search_results?.filter(s => s.cited)?.length ?? 0;
             const durationSec = run.duration_ms ? Math.round(run.duration_ms / 1000) : null;
             const hasMention = mentionCount > 0;
+            const modelShort = run.model ? run.model.replace(/^OR:\s*|^GROQ:\s*|^DS:\s*/i, '').split('/').pop() : null;
 
             return (
               <div
@@ -177,35 +203,73 @@ export default function PromptExplorer({ runs = [], focusedPromptId = null, acti
                     : 'border-surface-border bg-surface-900 hover:border-slate-700'
                 }`}
               >
-                <div className="flex items-center justify-between text-xs mb-1">
-                  <span className={`font-bold text-[11px] px-2 py-0.5 rounded border ${
-                    isSelected
-                      ? 'text-white bg-surface-900 border-surface-border'
-                      : 'text-slate-300 bg-surface-800 border-surface-border'
-                  }`}>
-                    Prompt {globalIdx + 1}
-                  </span>
-                  {run.status === 'failed' ? (
-                    <span className="px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 font-medium text-[10px] border border-rose-500/20 flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3" /> Failed
+                <div className="flex items-center justify-between text-xs mb-1.5 gap-2">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className={`font-bold text-[11px] px-2 py-0.5 rounded border ${
+                      isSelected
+                        ? 'text-white bg-surface-900 border-surface-border'
+                        : 'text-slate-300 bg-surface-800 border-surface-border'
+                    }`}>
+                      Prompt {globalIdx + 1}
                     </span>
-                  ) : hasMention ? (
-                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-medium text-[10px] flex items-center gap-1">
-                      <CheckCircle className="w-3 h-3" /> Mentioned
-                    </span>
-                  ) : (
-                    <span className="px-2 py-0.5 rounded-full bg-slate-700/50 text-slate-400 font-medium text-[10px]">
-                      Not Mentioned
-                    </span>
-                  )}
+                    {run.batch_id != null && (
+                      <span className="font-bold text-[10px] px-2 py-0.5 rounded bg-blue-500/15 text-blue-300 border border-blue-500/30">
+                        Batch #{run.batch_id}
+                      </span>
+                    )}
+                    {modelShort && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-surface-800 text-slate-400 border border-surface-border truncate max-w-[100px]" title={run.model}>
+                        {modelShort}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {run.status === 'failed' ? (
+                      <span className="px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 font-medium text-[10px] border border-rose-500/20 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" /> Failed
+                      </span>
+                    ) : hasMention ? (
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-medium text-[10px] flex items-center gap-1">
+                        <CheckCircle className="w-3 h-3" /> Mentioned
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full bg-slate-700/50 text-slate-400 font-medium text-[10px]">
+                        Not Mentioned
+                      </span>
+                    )}
+
+                    {onDeleteExecution && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setRunToDelete(run);
+                        }}
+                        className="p-1 rounded text-slate-500 hover:text-rose-400 hover:bg-rose-500/15 transition-colors cursor-pointer"
+                        title="Delete this execution run"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
+
                 <h4 className={`text-xs font-semibold leading-snug ${isSelected ? 'text-white' : 'text-slate-200'}`}>
                   {run.prompt_text}
                 </h4>
-                <div className="flex items-center gap-3 mt-2 text-[11px] text-slate-400">
-                  <span><strong className="text-slate-200">{mentionCount}</strong> {mentionCount === 1 ? 'mention' : 'mentions'}</span>
-                  <span><strong className="text-slate-200">{citedCountCard}</strong> cited</span>
-                  {durationSec != null && <span><strong className="text-slate-200">{durationSec}s</strong></span>}
+
+                <div className="flex items-center justify-between mt-2 text-[11px] text-slate-400">
+                  <div className="flex items-center gap-3">
+                    <span><strong className="text-slate-200">{mentionCount}</strong> {mentionCount === 1 ? 'mention' : 'mentions'}</span>
+                    <span><strong className="text-slate-200">{citedCountCard}</strong> cited</span>
+                    {durationSec != null && <span><strong className="text-slate-200">{durationSec}s</strong></span>}
+                  </div>
+                  {run.created_at && (
+                    <span className="text-[10px] text-slate-500 font-mono">
+                      {new Date(run.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  )}
                 </div>
               </div>
             );
@@ -218,24 +282,46 @@ export default function PromptExplorer({ runs = [], focusedPromptId = null, acti
         {/* Header & Prompt Title */}
         <div className="border-b border-surface-border pb-3.5 space-y-2.5">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs font-bold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2.5 py-1 rounded">
                 Prompt {selectedIndex + 1} Execution
               </span>
+              {activeRun?.batch_id != null && (
+                <span className="text-xs font-bold text-blue-300 bg-blue-500/20 border border-blue-500/40 px-2.5 py-0.5 rounded">
+                  Batch #{activeRun.batch_id}
+                </span>
+              )}
               {activeRun?.model && (
-                <span className="text-xs text-slate-400">{activeRun.model}</span>
+                <span className="text-xs text-slate-400 font-mono bg-surface-900 border border-surface-border px-2 py-0.5 rounded">
+                  {activeRun.model}
+                </span>
               )}
             </div>
-            <span className={`text-xs px-2 py-0.5 rounded font-semibold flex items-center gap-1 capitalize ${
-              sentiment === 'positive'
-                ? 'bg-emerald-500/10 text-emerald-400'
-                : sentiment === 'negative'
-                  ? 'bg-rose-500/10 text-rose-400'
-                  : 'bg-amber-500/10 text-amber-400'
-            }`}>
-              <Smile className="w-3.5 h-3.5" />
-              <span>{sentiment} Sentiment</span>
-            </span>
+
+            <div className="flex items-center gap-2">
+              <span className={`text-xs px-2 py-0.5 rounded font-semibold flex items-center gap-1 capitalize ${
+                sentiment === 'positive'
+                  ? 'bg-emerald-500/10 text-emerald-400'
+                  : sentiment === 'negative'
+                    ? 'bg-rose-500/10 text-rose-400'
+                    : 'bg-amber-500/10 text-amber-400'
+              }`}>
+                <Smile className="w-3.5 h-3.5" />
+                <span>{sentiment} Sentiment</span>
+              </span>
+
+              {onDeleteExecution && activeRun && (
+                <button
+                  type="button"
+                  onClick={() => setRunToDelete(activeRun)}
+                  className="px-2 py-1 rounded text-xs font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-rose-500/20 flex items-center gap-1 transition-colors cursor-pointer"
+                  title="Delete this execution run"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Delete Run</span>
+                </button>
+              )}
+            </div>
           </div>
 
           <h3 className="text-sm font-bold text-white">
@@ -473,14 +559,31 @@ export default function PromptExplorer({ runs = [], focusedPromptId = null, acti
         </div>
       </div>
 
+      {/* Delete Individual Run Confirmation Modal */}
+      <ConfirmDialog
+        isOpen={!!runToDelete}
+        title="Delete Execution Run?"
+        description={`Permanently remove the execution for "${runToDelete?.prompt_text || 'this prompt'}" from Batch #${runToDelete?.batch_id ?? 'N/A'}. This will remove all search queries, grounding citations, and brand mentions for this run.`}
+        confirmLabel={isDeletingRun ? "Deleting..." : "Delete Run"}
+        onConfirm={async () => {
+          if (!runToDelete || !onDeleteExecution) return;
+          setIsDeletingRun(true);
+          try {
+            await onDeleteExecution(runToDelete.id);
+          } finally {
+            setIsDeletingRun(false);
+            setRunToDelete(null);
+          }
+        }}
+        onCancel={() => setRunToDelete(null)}
+      />
+
       {/* Clear All Confirmation Modal */}
       <ConfirmDialog
         isOpen={showClearConfirm}
         title="Clear All Executed Test Prompts?"
-        message="This will permanently delete all evaluated test prompt runs, grounding sources, and mention analytics for this project so you can start clean."
-        confirmText="Clear All Results"
-        cancelText="Cancel"
-        isDanger={true}
+        description="This will permanently delete all evaluated test prompt runs, grounding sources, and mention analytics for this project so you can start clean."
+        confirmLabel={isClearing ? "Clearing..." : "Clear All Results"}
         onConfirm={async () => {
           setIsClearing(true);
           try {
