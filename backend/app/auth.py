@@ -8,3 +8,13 @@ def get_password_hash(password: str) -> str:
     salt = secrets.token_hex(16)
     digest = hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), rounds).hex()
     return f"pbkdf2_sha256${rounds}${salt}${digest}"
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    try:
+        scheme, rounds, salt, digest = hashed_password.split("$", 3)
+        if scheme != "pbkdf2_sha256":
+            return False
+        calculated = hashlib.pbkdf2_hmac("sha256", plain_password.encode(), salt.encode(), int(rounds)).hex()
+        return hmac.compare_digest(calculated, digest)
+    except (ValueError, TypeError):
+        return False
