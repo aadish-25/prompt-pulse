@@ -10,6 +10,10 @@ __pycache__
 __pycache__/
 *.py[cod]
 
+# Logs
+logs/
+*.log
+
 # Frontend dependencies & builds
 frontend/node_modules/
 frontend/dist/
@@ -22,7 +26,6 @@ frontend/.next/
 
 # Personal scratchpads
 todo.txt
-
 
 .agents
 skills-lock.json
