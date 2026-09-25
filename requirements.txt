@@ -1,3 +1,4 @@
+# PromptPulse Backend Requirements
 fastapi>=0.115.0
 uvicorn>=0.30.0
 sqlalchemy>=2.0.0
@@ -8,3 +9,5 @@ tavily-python>=0.5.0
 mangum>=0.19.0
 pydantic>=2.0.0
 tenacity>=8.0.0
+pyjwt>=2.8.0
+# Native hashlib.pbkdf2_hmac used for secure password hashing (passlib/bcrypt removed)
