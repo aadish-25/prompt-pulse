@@ -5,6 +5,7 @@ import secrets
 
 def get_password_hash(password: str) -> str:
     rounds = 310_000
+    # 16-byte cryptographically secure random salt per hash (enforces high entropy)
     salt = secrets.token_hex(16)
     digest = hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), rounds).hex()
     return f"pbkdf2_sha256${rounds}${salt}${digest}"
