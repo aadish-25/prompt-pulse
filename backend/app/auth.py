@@ -23,6 +23,10 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 from typing import Optional
 from pydantic import BaseModel
 
+JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY") or secrets.token_urlsafe(48)
+JWT_ALGORITHM = os.environ.get("JWT_ALGORITHM", "HS256")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("JWT_EXPIRE_MINUTES", "10080"))
+
 class TokenData(BaseModel):
     username: str
     role: str
