@@ -19,3 +19,18 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         return hmac.compare_digest(calculated, digest)
     except (ValueError, TypeError):
         return False
+
+from typing import Optional
+from pydantic import BaseModel
+
+class TokenData(BaseModel):
+    username: str
+    role: str
+    exp: Optional[int] = None
+
+class UserContext(BaseModel):
+    username: str
+    role: str
+    is_admin: bool
+    is_demo: bool
+    user_id: int | None = None
