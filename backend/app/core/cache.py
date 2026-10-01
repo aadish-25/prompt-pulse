@@ -108,6 +108,107 @@ class InMemoryCache:
             }
 
 
+class RedisCache:
+    def __init__(self, redis_url: str, default_ttl: int = 120):
+        self.default_ttl = default_ttl
+        self.redis_url = redis_url
+        self._fallback = InMemoryCache(default_ttl=float(default_ttl))
+        self._client: Optional[Any] = None
+        self._hits = 0
+        self._misses = 0
+        self._connect()
 
-# RedisCache integration in progress
+    def _connect(self):
+        if not redis:
+            logger.warning("[CACHE:REDIS] redis package not available, using memory fallback")
+            return
+        try:
+            self._client = redis.from_url(
+                self.redis_url,
+                socket_connect_timeout=2.0,
+                socket_timeout=2.0,
+            )
+            self._client.ping()
+            logger.info(f"[CACHE:REDIS] Connected successfully to Redis: {self.redis_url.split('@')[-1]}")
+        except Exception as exc:
+            logger.warning(f"[CACHE:REDIS] Connection failed ({exc}); falling back to in-memory cache")
+            self._client = None
+
+    def get(self, key: str) -> Optional[Any]:
+        if not self._client:
+            return self._fallback.get(key)
+        try:
+            raw = self._client.get(key)
+            if raw is None:
+                self._misses += 1
+                return None
+            self._hits += 1
+            return pickle.loads(raw)
+        except Exception as exc:
+            logger.warning(f"[CACHE:REDIS] Error reading key '{key}': {exc}; trying fallback")
+            return self._fallback.get(key)
+
+    def set(self, key: str, value: Any, ttl_seconds: Optional[float] = None) -> None:
+        ttl = int(self.default_ttl if ttl_seconds is None else ttl_seconds)
+        if not self._client:
+            self._fallback.set(key, value, ttl_seconds)
+            return
+        try:
+            serialized = pickle.dumps(value)
+            self._client.setex(key, ttl, serialized)
+        except Exception as exc:
+            logger.warning(f"[CACHE:REDIS] Error setting key '{key}': {exc}; using fallback")
+            self._fallback.set(key, value, ttl_seconds)
+
+    def delete(self, key: str) -> bool:
+        deleted = False
+        if self._client:
+            try:
+                deleted = bool(self._client.delete(key))
+            except Exception:
+                pass
+        self._fallback.delete(key)
+        return deleted
+
+    def invalidate_prefix(self, prefix: str) -> int:
+        count = 0
+        if self._client:
+            try:
+                keys = list(self._client.scan_iter(f"{prefix}*"))
+                if keys:
+                    count = self._client.delete(*keys)
+                    logger.info(f"[CACHE:REDIS] Invalidated {count} keys matching prefix '{prefix}'")
+            except Exception as exc:
+                logger.warning(f"[CACHE:REDIS] Error invalidating prefix '{prefix}': {exc}")
+        fb_count = self._fallback.invalidate_prefix(prefix)
+        return count or fb_count
+
+    def clear(self) -> None:
+        if self._client:
+            try:
+                self._client.flushdb()
+            except Exception:
+                pass
+        self._fallback.clear()
+
+    def stats(self) -> dict:
+        if self._client:
+            try:
+                info = self._client.info("memory")
+                total = self._hits + self._misses
+                ratio = (self._hits / total * 100.0) if total > 0 else 0.0
+                return {
+                    "backend": "redis",
+                    "status": "connected",
+                    "hits": self._hits,
+                    "misses": self._misses,
+                    "hit_ratio_pct": round(ratio, 2),
+                    "used_memory_human": info.get("used_memory_human", "unknown"),
+                }
+            except Exception:
+                pass
+        return self._fallback.stats()
+
+
+
 app_cache = InMemoryCache()
