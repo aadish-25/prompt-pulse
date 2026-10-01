@@ -210,5 +210,9 @@ class RedisCache:
         return self._fallback.stats()
 
 
-
-app_cache = InMemoryCache()
+# Auto-configure cache engine
+_redis_url = os.environ.get("REDIS_URL", "").strip()
+if _redis_url:
+    app_cache = RedisCache(_redis_url)
+else:
+    app_cache = InMemoryCache(max_items=250, default_ttl=90.0)
