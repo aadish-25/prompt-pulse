@@ -94,5 +94,3 @@ def health(db: Session = Depends(get_db)):
 def health_api(db: Session = Depends(get_db)):
     db.execute(text("SELECT 1"))
     return {"status": "ok", "service": "PromptPulse API"}
-@app.get('/health')
-def health(db = Depends(get_db)): return {'status':'ok'}
