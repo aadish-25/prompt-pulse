@@ -30,7 +30,7 @@ class Project(Base):
     __tablename__ = "projects"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    # owner_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
+    owner_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
     brand_name: Mapped[str] = mapped_column(String(100))
     domain: Mapped[list] = mapped_column(JSON, default=list)
     aliases: Mapped[list] = mapped_column(JSON, default=list)
