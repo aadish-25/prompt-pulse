@@ -13,8 +13,7 @@ class User(Base):
     role: Mapped[str] = mapped_column(String(20), default="user")
     # avatar_url
     # avatar_url: Mapped[str | None] = mapped_column(Text, nullable=True)
-    # free_runs
-    # free_runs_used: Mapped[int] = mapped_column(Integer, default=0)
+    free_runs_used: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
 
 
