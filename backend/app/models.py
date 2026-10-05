@@ -3,10 +3,36 @@ from sqlalchemy import String, Text, Boolean, Integer, JSON, ForeignKey, DateTim
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    username: Mapped[str] = mapped_column(String(80), unique=True, index=True)
+    email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    password_hash: Mapped[str] = mapped_column(String(255))
+    role: Mapped[str] = mapped_column(String(20), default="user")
+    # avatar_url
+    # avatar_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # free_runs
+    # free_runs_used: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
+
+
+
+class ProjectSettings(Base):
+    __tablename__ = "project_settings"
+
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), primary_key=True)
+    brand_context: Mapped[dict] = mapped_column(JSON, default=dict)
+    models: Mapped[list] = mapped_column(JSON, default=list)
+    schedule: Mapped[dict] = mapped_column(JSON, default=dict)
+    updated_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+
 class Project(Base):
     __tablename__ = "projects"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    owner_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
     brand_name: Mapped[str] = mapped_column(String(100))
     domain: Mapped[list] = mapped_column(JSON, default=list)
     aliases: Mapped[list] = mapped_column(JSON, default=list)
