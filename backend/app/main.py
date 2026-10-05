@@ -71,3 +71,28 @@ app.include_router(runs.router)
 app.include_router(results.router)
 
 
+if engine:
+    try:
+        Base.metadata.create_all(engine)
+        # Additive migration for installations created before project ownership was introduced.
+        project_columns = {column["name"] for column in inspect(engine).get_columns("projects")}
+        with engine.begin() as connection:
+            if "owner_id" not in project_columns:
+                connection.execute(text("ALTER TABLE projects ADD COLUMN owner_id INTEGER REFERENCES users(id)"))
+            connection.execute(text("CREATE INDEX IF NOT EXISTS ix_projects_owner_id ON projects (owner_id)"))
+    except Exception as e:
+        logger.warning(f"Database initialization warning: {e}")
+
+
+@app.get("/health")
+def health(db: Session = Depends(get_db)):
+    db.execute(text("SELECT 1"))
+    return {"status": "ok", "service": "PromptPulse API"}
+
+
+@app.get("/api/health")
+def health_api(db: Session = Depends(get_db)):
+    db.execute(text("SELECT 1"))
+    return {"status": "ok", "service": "PromptPulse API"}
+@app.get('/health')
+def health(db = Depends(get_db)): return {'status':'ok'}
