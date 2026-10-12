@@ -36,6 +36,8 @@ class PromptOut(BaseModel):
     project_id: int
     text: str
     active: bool
+    intent: str | None = None
+    intent_display: str | None = None
     model_config = {"from_attributes": True}
 
 
@@ -139,3 +141,91 @@ class DomainStatsOut(BaseModel):
 class SupportedModelsOut(BaseModel):
     default_model: str
     supported_models: list[str]
+
+
+# ------------------------------------------------------------------------------
+# Multi-LLM Comparison Schemas
+# ------------------------------------------------------------------------------
+class MultiLLMCompareRequest(BaseModel):
+    prompt_id: int | None = None
+    prompt_text: str | None = None
+
+
+class ModelEvaluationResultOut(BaseModel):
+    model_id: str
+    display_name: str
+    provider: str
+    mentioned: bool
+    rank: int | None = None
+    sentiment: str
+    summary: str
+    full_response: str
+    citations: list[str] = []
+    latency_ms: float
+    error: str | None = None
+
+
+class MultiLLMComparisonReportOut(BaseModel):
+    prompt_id: int | None = None
+    prompt_text: str
+    brand_name: str
+    models_evaluated: int
+    models_mentioning_brand: int
+    visibility_score_pct: float
+    evaluations: list[ModelEvaluationResultOut]
+
+
+# ------------------------------------------------------------------------------
+# Gap Analysis ("Fix My Ranking") Schemas
+# ------------------------------------------------------------------------------
+class ActionableRecommendationOut(BaseModel):
+    category: str
+    priority: str
+    title: str
+    rationale: str
+    implementation_steps: list[str]
+
+
+class CompetitorDisplacementOut(BaseModel):
+    prompt_id: int
+    prompt_text: str
+    brand_mentioned: bool
+    competitors_present: list[str]
+    citations_observed: list[str]
+    lost_to_competitor: str
+
+
+class GapAnalysisReportOut(BaseModel):
+    project_id: int
+    brand_name: str
+    total_audited_runs: int
+    win_rate_pct: float
+    displacement_count: int
+    top_displacing_competitors: list[dict]
+    missing_high_authority_domains: list[str]
+    displacements: list[CompetitorDisplacementOut]
+    recommendations: list[ActionableRecommendationOut]
+
+
+# ------------------------------------------------------------------------------
+# Intent Classification Schemas
+# ------------------------------------------------------------------------------
+class IntentClassificationRequest(BaseModel):
+    text: str
+
+
+class IntentClassificationOut(BaseModel):
+    intent: str
+    display_name: str
+    confidence: float
+    description: str
+    signals_detected: list[str]
+
+
+
+class RegisterRequest(BaseModel):
+    username: str = Field(min_length=3, max_length=80, pattern=r"^[A-Za-z0-9_.-]+$")
+    email: str = Field(min_length=5, max_length=255)
+    password: str = Field(min_length=8, max_length=128)
+
+
