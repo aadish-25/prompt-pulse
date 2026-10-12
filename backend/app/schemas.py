@@ -229,3 +229,34 @@ class RegisterRequest(BaseModel):
     password: str = Field(min_length=8, max_length=128)
 
 
+class ProfileUpdate(BaseModel):
+    username: str = Field(min_length=3, max_length=80, pattern=r"^[A-Za-z0-9_.-]+$")
+    email: str = Field(min_length=5, max_length=255)
+    avatar_url: str | None = Field(default=None, max_length=2_100_000)
+
+
+class PasswordChange(BaseModel):
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=8, max_length=128)
+
+
+class ProjectUpdate(BaseModel):
+    brand_name: str | None = Field(default=None, max_length=100)
+    domain: list[str] | None = None
+    aliases: list[str] | None = None
+    competitors: list[str] | None = None
+
+
+class ProjectSettingsUpdate(BaseModel):
+    brand_context: dict = Field(default_factory=dict)
+    models: list[str] = Field(default_factory=list)
+    schedule: dict = Field(default_factory=dict)
+
+
+class PromptContentUpdate(BaseModel):
+    text: str = Field(min_length=1, max_length=10000)
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
