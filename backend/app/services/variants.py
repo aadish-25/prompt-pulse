@@ -1,25 +1,21 @@
-import os
 from enum import Enum
 from pydantic import BaseModel, Field
 from app.config import (
     MODEL,
     DEFAULT_VARIANT_COUNT,
     MAX_VARIANT_COUNT,
-    get_llm_client,
-    normalize_model_for_provider,
+    resolve_llm,
 )
-
-
-def get_client():
-    return get_llm_client()
+from app.services.structured_output import structured_completion
+from app.logger import logger, log_span
 
 
 class IntentCategory(str, Enum):
-    CORE_NEED = "core_need"             # Problem / outcome-focused
-    CATEGORY_CRITERIA = "criteria"      # Evaluation factors (speed, security, specs)
-    COMPETITOR_CONQUEST = "competitor"  # Alternatives to known competitors
-    PERSONA_USECASE = "persona"         # Beginner, enterprise, freelancer, etc.
-    TRANSACTION_BUDGET = "transaction"  # Pricing, plans, ₹ budget thresholds
+    CORE_NEED = "core_need"
+    CATEGORY_CRITERIA = "criteria"
+    COMPETITOR_CONQUEST = "competitor"
+    PERSONA_USECASE = "persona"
+    TRANSACTION_BUDGET = "transaction"
 
 
 class PromptVariant(BaseModel):
@@ -51,25 +47,25 @@ CURRENT YEAR: 2026
 
 PRIMARY OBJECTIVE:
 Deduce the EXACT product category of {brand_name} based on its name, domains ({domains}), and known competitors ({competitors}).
-Every single generated prompt MUST be strictly relevant to {brand_name}'s actual product domain (e.g. if {brand_name} makes laptops/PCs, every prompt must be about laptops, PCs, hardware, performance, cooling, or computing. NEVER generate prompts for unrelated industries like accounting, food, or generic SaaS).
+Every single generated prompt MUST be strictly relevant to {brand_name}'s actual product domain.
 
 INTENT BUCKETS TO DISTRIBUTE ACROSS (balanced distribution):
-1. 'core_need': Category problem solving or jobs-to-be-done without naming any brand (e.g. for laptops: "best laptop for programming and machine learning", "lightweight laptop with long battery life").
-2. 'criteria': Evaluation factors specific to this category (e.g. specs, display quality, thermal management, build durability, after-sales service in India).
-3. 'competitor': Seeking alternatives to or comparing established incumbents from {competitors} (e.g. "top alternatives to [Competitor]", "[CompetitorA] vs [CompetitorB] for college students").
-4. 'persona': Specific buyer profiles or use cases (e.g. for coding, video editing, business travel, college students, CAD work).
-5. 'transaction': Realistic Indian budget limits or purchasing decisions (e.g. "under ₹50,000", "best value under ₹80,000", "student discounts in India").
+1. 'core_need': Category problem solving or jobs-to-be-done without naming any brand.
+2. 'criteria': Evaluation factors specific to this category.
+3. 'competitor': Seeking alternatives to or comparing established incumbents from {competitors}.
+4. 'persona': Specific buyer profiles or use cases.
+5. 'transaction': Realistic Indian budget limits or purchasing decisions.
 
 PROMPT STYLE & GROUNDING:
-- Length: 5 to 18 words. Natural, punchy search phrasing as real users type into ChatGPT, Perplexity, or Gemini.
+- Length: 5 to 18 words. Natural, punchy search phrasing.
 - Phrasing: Mix of lowercase search fragments, direct questions, and phrases with 'according to reddit', 'with pros and cons', or 'user reviews'.
 - Varied structures: Do NOT start every prompt with "Best...", "Which...", or "What is...".
-- Current context: Year is 2026. Do NOT mention outdated years like 2023 or 2024.
+- Current context: Year is 2026.
 
 HARD RULES:
-1. NEVER mention the target brand "{brand_name}", its aliases ({aliases}), or its official domains ({domains}) in ANY prompt. The target brand must earn the recommendation organically.
-2. You MAY mention known competitors ({competitors}) in the 'competitor' bucket to test displacement visibility.
-3. Every prompt MUST strictly fit {brand_name}'s actual category. Do NOT hallucinate unrelated software, accounting, or services.
+1. NEVER mention the target brand "{brand_name}", its aliases ({aliases}), or its official domains ({domains}) in ANY prompt.
+2. You MAY mention known competitors ({competitors}) in the 'competitor' bucket.
+3. Every prompt MUST strictly fit {brand_name}'s actual category.
 4. Distribute roughly evenly across the 5 intent buckets.
 
 Generate exactly {count} distinct prompt variants conforming to the JSON schema."""
@@ -83,6 +79,7 @@ def generate_prompt_variants(
     domains: list[str] | None = None,
     seed_topic: str | None = None,
     model: str = MODEL,
+    user_keys: dict[str, str] | None = None,
 ) -> list[PromptVariant]:
     bounded_count = max(1, min(count, MAX_VARIANT_COUNT))
     competitors_str = ", ".join(competitors) if competitors else "None specified"
@@ -96,37 +93,35 @@ def generate_prompt_variants(
         else f"Generate {bounded_count} authentic discovery and evaluation search prompts for the product category of {brand_name} (Competitors: {competitors_str})."
     )
 
-    from app.config import resolve_llm
-    client, active_model = resolve_llm(model)
-    print(
-        f"[LLM API Call] Sending variant request to model: '{active_model}' (raw: '{model}') for brand: '{brand_name}' (topic='{seed_topic_str}', count={bounded_count})...",
-        flush=True,
-    )
+    with log_span("generate_prompt_variants", brand=brand_name, count=bounded_count, model=model):
+        client, active_model = resolve_llm(model, user_keys=user_keys)
+        logger.info(
+            f"[VARIANTS] Requesting {bounded_count} variants -> Model: '{active_model}' "
+            f"Brand: '{brand_name}' Topic: '{seed_topic_str}'"
+        )
 
-    response = client.beta.chat.completions.parse(
-        model=active_model,
-        messages=[
-            {
-                "role": "system",
-                "content": SYSTEM_PROMPT.format(
-                    brand_name=brand_name,
-                    seed_topic=seed_topic_str,
-                    aliases=aliases_str,
-                    competitors=competitors_str,
-                    domains=domains_str,
-                    count=bounded_count,
-                ),
-            },
-            {
-                "role": "user",
-                "content": user_content,
-            },
-        ],
-        response_format=VariantGenerationResponse,
-        max_tokens=2000,
-    )
+        result = structured_completion(
+            client=client,
+            model=active_model,
+            messages=[
+                {
+                    "role": "system",
+                    "content": SYSTEM_PROMPT.format(
+                        brand_name=brand_name,
+                        seed_topic=seed_topic_str,
+                        aliases=aliases_str,
+                        competitors=competitors_str,
+                        domains=domains_str,
+                        count=bounded_count,
+                    ),
+                },
+                {"role": "user", "content": user_content},
+            ],
+            response_model=VariantGenerationResponse,
+            max_tokens=2000,
+            raw_model=model,
+        )
 
-    parsed = response.choices[0].message.parsed
-    if parsed and parsed.variants:
-        return parsed.variants[:bounded_count]
-    return []
+        variants = result.variants[:bounded_count] if result and result.variants else []
+        logger.info(f"[VARIANTS] Successfully generated {len(variants)} prompt variants for {brand_name}")
+        return variants
