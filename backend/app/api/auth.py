@@ -74,3 +74,45 @@ def demo_login():
     return {"access_token": token, "token_type": "bearer", "user": {"username": DEMO_USERNAME, "role": "demo", "is_admin": False, "is_demo": True}}
 
 
+@router.get("/me")
+def get_profile(db: Session = Depends(get_db), user: UserContext = Depends(get_current_user_optional)):
+    if user.user_id:
+        record = db.get(models.User, user.user_id)
+        if not record:
+            raise HTTPException(401, "Account no longer exists")
+        payload = user_payload(record)
+    else:
+        payload = {"username": user.username, "role": user.role, "is_admin": user.is_admin, "is_demo": user.is_demo, "email": None, "avatar_url": None}
+    payload["free_prompt_limit"] = FREE_TIER_PROMPT_LIMIT
+    return payload
+
+
+@router.patch("/me")
+def update_profile(body: schemas.ProfileUpdate, db: Session = Depends(get_db), user: UserContext = Depends(get_current_user_optional)):
+    if not user.user_id:
+        raise HTTPException(403, "Demo and administrator profiles cannot be edited here")
+    record = db.get(models.User, user.user_id)
+    if not record:
+        raise HTTPException(404, "Account not found")
+    email = body.email.strip().lower()
+    if not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", email):
+        raise HTTPException(422, "Enter a valid email address")
+    if body.username.strip().lower() in {ADMIN_USERNAME.lower(), DEMO_USERNAME.lower()}:
+        raise HTTPException(409, "That username is reserved")
+    username_conflict = db.query(models.User).filter(models.User.username.ilike(body.username), models.User.id != record.id).first()
+    email_conflict = db.query(models.User).filter(models.User.email == email, models.User.id != record.id).first()
+    if username_conflict:
+        raise HTTPException(409, "That username is already in use")
+    if email_conflict:
+        raise HTTPException(409, "That email address is already in use")
+    if "avatar_url" in body.model_fields_set:
+        if body.avatar_url and not body.avatar_url.startswith(("data:image/jpeg;base64,", "data:image/png;base64,", "data:image/webp;base64,")):
+            raise HTTPException(422, "Profile images must be JPEG, PNG or WebP data URLs")
+        record.avatar_url = body.avatar_url
+    record.username = body.username.strip()
+    record.email = email
+    db.commit()
+    db.refresh(record)
+    return user_payload(record)
+
+
