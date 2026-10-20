@@ -116,3 +116,5 @@ def update_profile(body: schemas.ProfileUpdate, db: Session = Depends(get_db), u
     return user_payload(record)
 
 
+
+# Password change endpoint pending
