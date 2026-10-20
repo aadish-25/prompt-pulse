@@ -116,5 +116,21 @@ def update_profile(body: schemas.ProfileUpdate, db: Session = Depends(get_db), u
     return user_payload(record)
 
 
+@router.post("/change-password")
+def change_password(body: schemas.PasswordChange, db: Session = Depends(get_db), user: UserContext = Depends(get_current_user_optional)):
+    if not user.user_id:
+        raise HTTPException(403, "Password changes are unavailable for demo and administrator profiles")
+    record = db.get(models.User, user.user_id)
+    if not record or not verify_password(body.current_password, record.password_hash):
+        raise HTTPException(400, "Current password is incorrect")
+    record.password_hash = get_password_hash(body.new_password)
+    db.commit()
+    return {"message": "Password changed successfully"}
 
-# Password change endpoint pending
+
+@router.get("/quota/{project_id}")
+def get_project_quota(project_id: int, db: Session = Depends(get_db), user: UserContext = Depends(get_current_user_optional)):
+    from app.api.projects import get_project_or_404
+    get_project_or_404(db, project_id, user)
+    total_runs = db.query(models.PromptExecution).join(models.Prompt).filter(models.Prompt.project_id == project_id).count()
+    return {"project_id": project_id, "used_prompts": total_runs, "limit": FREE_TIER_PROMPT_LIMIT, "remaining": max(0, FREE_TIER_PROMPT_LIMIT - total_runs) if not user.is_admin else 999999, "is_unlimited": user.is_admin}
