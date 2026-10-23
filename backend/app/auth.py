@@ -177,6 +177,21 @@ def enforce_free_tier_prompt_quota(
             .count()
         )
 
-    
     if (total_server_runs + prompt_count_requested) > FREE_TIER_PROMPT_LIMIT:
-        raise HTTPException(status_code=402, detail="Quota exhausted")
+        logger.warning(
+            f"Free tier limit exceeded for project {project_id}: currently {total_server_runs} runs. "
+            f"Requested {prompt_count_requested}. Limit: {FREE_TIER_PROMPT_LIMIT}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail={
+                "code": "FREE_TIER_EXHAUSTED",
+                "message": (
+                    f"Free trial limit reached ({FREE_TIER_PROMPT_LIMIT} prompts total). "
+                    "To continue tracking unlimited prompts, please provide your own API key in Settings (Bring Your Own Key)."
+                ),
+                "current_usage": total_server_runs,
+                "limit": FREE_TIER_PROMPT_LIMIT,
+                "requires_byok": True,
+            },
+        )
