@@ -144,3 +144,39 @@ def get_byok_keys_from_request(request: Request) -> dict[str, str]:
     return keys
 
 
+def enforce_free_tier_prompt_quota(
+    db: Session,
+    project_id: int,
+    user: UserContext,
+    byok_provided: bool = False,
+    prompt_count_requested: int = 1,
+):
+    """
+    Guards server resources:
+    1. Admin user -> UNLIMITED
+    2. User brought their own API key (BYOK) -> UNLIMITED
+    3. Demo/Free user without BYOK -> max FREE_TIER_PROMPT_LIMIT (5 prompts lifetime total)
+    """
+    if user.is_admin or byok_provided:
+        return
+
+    # Count executions across project using server credentials
+    if user.user_id:
+        total_server_runs = (
+            db.query(models.PromptExecution)
+            .join(models.Prompt)
+            .join(models.Project)
+            .filter(models.Project.owner_id == user.user_id)
+            .count()
+        )
+    else:
+        total_server_runs = (
+            db.query(models.PromptExecution)
+            .join(models.Prompt)
+            .filter(models.Prompt.project_id == project_id)
+            .count()
+        )
+
+    
+    if (total_server_runs + prompt_count_requested) > FREE_TIER_PROMPT_LIMIT:
+        raise HTTPException(status_code=402, detail="Quota exhausted")
