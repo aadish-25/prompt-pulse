@@ -130,3 +130,17 @@ def require_admin_user(
     return current_user
 
 
+def get_byok_keys_from_request(request: Request) -> dict[str, str]:
+    """Extract user-provided API keys from HTTP headers."""
+    keys = {}
+    if openrouter := request.headers.get("X-OpenRouter-Key"):
+        keys["openrouter"] = openrouter.strip()
+    if groq := request.headers.get("X-Groq-Key"):
+        keys["groq"] = groq.strip()
+    if deepseek := request.headers.get("X-DeepSeek-Key"):
+        keys["deepseek"] = deepseek.strip()
+    if tavily := request.headers.get("X-Tavily-Key"):
+        keys["tavily"] = tavily.strip()
+    return keys
+
+
