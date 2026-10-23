@@ -118,3 +118,55 @@ class TestJwtTokenManagement:
         assert exc_info.value.status_code == 401
 
 
+class TestByokHeadersAndQuota:
+    """Tests BYOK extraction and lifetime quota enforcement."""
+
+    def test_get_byok_keys_from_request_all_present(self):
+        mock_req = MagicMock()
+        mock_req.headers = {
+            "x-openrouter-key": "sk-or-test-key",
+            "x-groq-key": "gsk_test_key",
+            "x-deepseek-key": "sk-ds-test-key",
+            "x-tavily-key": "tvly-test-key",
+        }
+        keys = get_byok_keys_from_request(mock_req)
+        assert keys["openrouter"] == "sk-or-test-key"
+        assert keys["groq"] == "gsk_test_key"
+        assert keys["deepseek"] == "sk-ds-test-key"
+        assert keys["tavily"] == "tvly-test-key"
+
+    def test_get_byok_keys_from_request_empty_or_whitespace(self):
+        mock_req = MagicMock()
+        mock_req.headers = {
+            "x-openrouter-key": "   ",
+            "x-groq-key": "",
+        }
+        keys = get_byok_keys_from_request(mock_req)
+        assert keys == {}
+
+    def test_enforce_free_tier_prompt_quota_admin_bypass(self):
+        mock_db = MagicMock()
+        admin_ctx = UserContext(username="admin", role="admin", is_admin=True, is_demo=False, user_id=1)
+        # Must not raise even if usage exceeds limit
+        enforce_free_tier_prompt_quota(mock_db, project_id=1, user=admin_ctx, byok_provided=False, prompt_count_requested=100)
+
+    def test_enforce_free_tier_prompt_quota_byok_bypass(self):
+        mock_db = MagicMock()
+        user_ctx = UserContext(username="free_user", role="user", is_admin=False, is_demo=False, user_id=2)
+        # Must not raise when BYOK is provided
+        enforce_free_tier_prompt_quota(mock_db, project_id=1, user=user_ctx, byok_provided=True, prompt_count_requested=50)
+
+    def test_enforce_free_tier_prompt_quota_exhausted_raises_402(self):
+        mock_db = MagicMock()
+        # Mock query count returning 5 runs
+        mock_query = MagicMock()
+        mock_query.join.return_value.join.return_value.filter.return_value.count.return_value = 5
+        mock_db.query.return_value = mock_query
+
+        user_ctx = UserContext(username="free_user", role="user", is_admin=False, is_demo=False, user_id=2)
+        with pytest.raises(HTTPException) as exc_info:
+            enforce_free_tier_prompt_quota(mock_db, project_id=1, user=user_ctx, byok_provided=False, prompt_count_requested=1)
+        assert exc_info.value.status_code == 402
+        assert exc_info.value.detail["code"] == "FREE_TIER_EXHAUSTED"
+        assert exc_info.value.detail["limit"] == FREE_TIER_PROMPT_LIMIT
+        assert exc_info.value.detail["requires_byok"] is True
