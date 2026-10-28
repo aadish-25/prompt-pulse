@@ -1,23 +1,31 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 from app.db import get_db
 from app import models, schemas
+from app.core.cache import app_cache
+from app.auth import get_byok_keys_from_request, get_current_user_optional, UserContext
+from app.api.projects import get_project_or_404
+from app.services.gap_analysis import generate_gap_analysis
+from app.services.multi_llm import compare_prompt_across_models
+from app.services.intent import classify_prompt_intent
 
 router = APIRouter()
 
 
 @router.get("/batches/{batch_id}/runs", response_model=list[schemas.PromptExecutionOut])
-def list_batch_runs(batch_id: int, db: Session = Depends(get_db)):
+def list_batch_runs(batch_id: int, db: Session = Depends(get_db), user: UserContext = Depends(get_current_user_optional)):
     batch = db.get(models.TrackingBatch, batch_id)
     if not batch:
         raise HTTPException(404, "Batch not found")
+    get_project_or_404(db, batch.project_id, user)
     return db.query(models.PromptExecution).filter_by(batch_id=batch_id).all()
 
 
 @router.get("/projects/{project_id}/results", response_model=list[schemas.PromptExecutionOut])
 def project_results(
-    project_id: int, round: int | None = Query(None), db: Session = Depends(get_db)
+    project_id: int, round: int | None = Query(None), db: Session = Depends(get_db), user: UserContext = Depends(get_current_user_optional)
 ):
+    get_project_or_404(db, project_id, user)
     q = (
         db.query(models.PromptExecution)
         .join(models.Prompt)
@@ -32,10 +40,13 @@ def project_results(
 
 
 @router.delete("/executions/{execution_id}", status_code=200)
-def delete_execution(execution_id: int, db: Session = Depends(get_db)):
+def delete_execution(execution_id: int, db: Session = Depends(get_db), user: UserContext = Depends(get_current_user_optional)):
     execution = db.get(models.PromptExecution, execution_id)
     if not execution:
         raise HTTPException(404, "Execution not found")
+    prompt = db.get(models.Prompt, execution.prompt_id) if execution.prompt_id else None
+    if prompt:
+        get_project_or_404(db, prompt.project_id, user)
     batch_id = execution.batch_id
     db.query(models.SearchQuery).filter_by(execution_id=execution.id).delete()
     db.query(models.WebSearchResult).filter_by(execution_id=execution.id).delete()
@@ -50,12 +61,17 @@ def delete_execution(execution_id: int, db: Session = Depends(get_db)):
             db.query(models.TrackingBatch).filter_by(id=batch_id).delete()
             db.commit()
 
+    # Invalidate cache for the prompt's project
+    if prompt:
+        app_cache.invalidate_prefix(f"project:{prompt.project_id}")
+
     return {"message": "Execution deleted successfully", "deleted_id": execution_id}
 
 
 @router.delete("/projects/{project_id}/results")
-def clear_project_results(project_id: int, db: Session = Depends(get_db)):
+def clear_project_results(project_id: int, db: Session = Depends(get_db), user: UserContext = Depends(get_current_user_optional)):
     """Deletes all executions (and cascaded search queries, results, mentions, analyses) for a project."""
+    get_project_or_404(db, project_id, user)
     executions = (
         db.query(models.PromptExecution)
         .join(models.Prompt)
@@ -71,11 +87,18 @@ def clear_project_results(project_id: int, db: Session = Depends(get_db)):
 
     db.query(models.TrackingBatch).filter_by(project_id=project_id).delete()
     db.commit()
+    app_cache.invalidate_prefix(f"project:{project_id}")
     return {"message": "All execution results cleared successfully", "cleared_count": len(executions)}
 
 
 @router.get("/projects/{project_id}/summary", response_model=schemas.SummaryOut)
-def project_summary(project_id: int, db: Session = Depends(get_db)):
+def project_summary(project_id: int, db: Session = Depends(get_db), user: UserContext = Depends(get_current_user_optional)):
+    get_project_or_404(db, project_id, user)
+    cache_key = f"project:{project_id}:summary"
+    cached = app_cache.get(cache_key)
+    if cached is not None:
+        return cached
+
     project = db.get(models.Project, project_id)
     target_domains = (
         {d.lower().strip() for d in (project.domain or [])} if project else set()
@@ -128,9 +151,9 @@ def project_summary(project_id: int, db: Session = Depends(get_db)):
             for c in e.analysis.other_brands:
                 competitor_counts[c] = competitor_counts.get(c, 0) + 1
 
-    top_competitors = sorted(competitor_counts.items(), key=lambda x: -x[1])[:10]
+    top_competitors = sorted(competitor_counts.items(), key=lambda x: -x[1])
 
-    return schemas.SummaryOut(
+    summary_result = schemas.SummaryOut(
         total_runs=total,
         mentioned_count=len(mentioned),
         visibility_percentage=round(len(mentioned) / total * 100, 1),
@@ -140,12 +163,20 @@ def project_summary(project_id: int, db: Session = Depends(get_db)):
         sentiment_breakdown=sentiments,
         top_competitors=[{"brand": b, "count": c} for b, c in top_competitors],
     )
+    app_cache.set(cache_key, summary_result, ttl_seconds=60.0)
+    return summary_result
 
 
 @router.get(
     "/projects/{project_id}/citations", response_model=list[schemas.DomainStatsOut]
 )
-def project_citations(project_id: int, db: Session = Depends(get_db)):
+def project_citations(project_id: int, db: Session = Depends(get_db), user: UserContext = Depends(get_current_user_optional)):
+    get_project_or_404(db, project_id, user)
+    cache_key = f"project:{project_id}:citations"
+    cached = app_cache.get(cache_key)
+    if cached is not None:
+        return cached
+
     sources = (
         db.query(models.WebSearchResult)
         .join(models.PromptExecution)
@@ -160,7 +191,97 @@ def project_citations(project_id: int, db: Session = Depends(get_db)):
         if s.cited:
             entry["cited"] += 1
 
-    return [
+    result = [
         schemas.DomainStatsOut(domain=d, retrieved=v["retrieved"], cited=v["cited"])
         for d, v in sorted(domain_stats.items(), key=lambda x: -x[1]["cited"])
     ]
+    app_cache.set(cache_key, result, ttl_seconds=60.0)
+    return result
+
+
+@router.get(
+    "/projects/{project_id}/gap-analysis",
+    response_model=schemas.GapAnalysisReportOut,
+)
+def get_project_gap_analysis(project_id: int, db: Session = Depends(get_db), user: UserContext = Depends(get_current_user_optional)):
+    """Performs adversarial gap analysis on this project's LLM search results."""
+    get_project_or_404(db, project_id, user)
+    cache_key = f"project:{project_id}:gap-analysis"
+    cached = app_cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    project = db.get(models.Project, project_id)
+    if not project:
+        raise HTTPException(404, "Project not found")
+
+    report = generate_gap_analysis(db, project)
+    app_cache.set(cache_key, report, ttl_seconds=60.0)
+    return report
+
+
+@router.post(
+    "/projects/{project_id}/compare-models",
+    response_model=schemas.MultiLLMComparisonReportOut,
+)
+def compare_models(
+    project_id: int,
+    payload: schemas.MultiLLMCompareRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    user: UserContext = Depends(get_current_user_optional),
+):
+    """
+    Evaluates a single prompt concurrently across 4 distinct AI reasoning engines:
+    OpenAI, Google Gemini, Anthropic Claude, and Meta Llama / Groq.
+    Extracts brand mention presence, rank position, sentiment, citations, and latency per engine.
+    """
+    project = get_project_or_404(db, project_id, user)
+
+    prompt_text = ""
+    prompt_id = payload.prompt_id
+
+    if prompt_id:
+        p = db.get(models.Prompt, prompt_id)
+        if p and p.project_id == project_id:
+            prompt_text = p.text
+        elif p:
+            raise HTTPException(404, "Prompt not found in this project")
+    if not prompt_text and payload.prompt_text:
+        prompt_text = payload.prompt_text.strip()
+
+    if not prompt_text:
+        # Fallback to first project prompt if available
+        first_prompt = db.query(models.Prompt).filter_by(project_id=project_id).first()
+        if first_prompt:
+            prompt_id = first_prompt.id
+            prompt_text = first_prompt.text
+        else:
+            raise HTTPException(400, "No prompt text or prompt_id provided, and project has no prompts.")
+
+    user_keys = get_byok_keys_from_request(request)
+
+    return compare_prompt_across_models(
+        prompt_text=prompt_text,
+        brand_name=project.brand_name,
+        aliases=project.aliases,
+        prompt_id=prompt_id,
+        user_keys=user_keys,
+    )
+
+
+@router.post(
+    "/intent/classify",
+    response_model=schemas.IntentClassificationOut,
+)
+def classify_intent(payload: schemas.IntentClassificationRequest):
+    """Classifies a search prompt into the 5 GEO intent buckets."""
+    classification = classify_prompt_intent(payload.text)
+    return schemas.IntentClassificationOut(
+        intent=classification.intent,
+        display_name=classification.display_name,
+        confidence=classification.confidence,
+        description=classification.description,
+        signals_detected=classification.signals_detected,
+    )
+
