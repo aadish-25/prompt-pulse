@@ -137,8 +137,7 @@ export default function PromptExplorer({
       : dateStr;
     try {
       const d = new Date(cleanStr);
-      return d.toLocaleTimeString('en-IN', {
-        timeZone: 'Asia/Kolkata',
+      return d.toLocaleTimeString([], {
         hour: '2-digit',
         minute: '2-digit',
         hour12: true
@@ -146,6 +145,16 @@ export default function PromptExplorer({
     } catch {
       return dateStr;
     }
+  };
+
+  const escapeHtml = (str) => {
+    if (!str) return '';
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   };
 
   const formatSentiment = (s) => {
@@ -448,7 +457,7 @@ export default function PromptExplorer({
                 }
                 return (
                   <p key={idx} dangerouslySetInnerHTML={{
-                    __html: paragraph
+                    __html: escapeHtml(paragraph)
                       .replace(/\*\*(.*?)\*\*/g, '<strong class="text-white">$1</strong>')
                       .replace(/\[(\d+)\]/g, '<span class="inline-block text-[11px] text-blue-400 font-bold bg-blue-500/20 px-1 py-0.5 rounded border border-blue-500/30 mx-0.5 tracking-tight">[$1]</span>')
                   }} />
@@ -464,7 +473,7 @@ export default function PromptExplorer({
                   {activeRun.error || 'LLM provider error occurred during execution.'}
                 </p>
                 <p className="text-[11px] text-slate-400">
-                  Note: The batch execution can be retried cleanly now that worker concurrency has been optimized.
+                  You can retry this execution by running the prompt or batch again.
                 </p>
               </div>
             ) : (

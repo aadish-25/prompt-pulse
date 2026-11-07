@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
 import { Sparkles, Plus, PlusCircle, Check, Loader2, Trash2 } from 'lucide-react';
 
-let candidateCounter = 0;
 function createCandidate(prompt, topic = 'Natural Search', intent = 'Consumer Query', rationale = '') {
-  candidateCounter += 1;
   return {
-    id: `cand_${Date.now()}_${candidateCounter}_${Math.random().toString(36).substring(2, 7)}`,
+    id: `cand_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
     prompt,
     topic,
     intent,
@@ -105,6 +103,9 @@ export default function PromptCreator({
       const next = new Set(selectedIds);
       addedIds.forEach(id => next.delete(id));
       onSelectedIdsChange(next);
+    } catch (err) {
+      console.error("Bulk add failed:", err);
+      showToast("Failed to add prompts to tracker.");
     } finally {
       setIsSubmitting(false);
     }

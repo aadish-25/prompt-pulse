@@ -19,14 +19,18 @@ export default function TrackedPromptsQueue({
   const PAGE_SIZE = 10;
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Map of prompt_id -> run
+  // Map of prompt_id -> run (latest done run takes priority)
   const runMap = new Map();
+  const doneRunMap = new Map();
   runs.forEach(r => {
-    if (r.prompt_id) runMap.set(r.prompt_id, r);
+    if (r.prompt_id) {
+      runMap.set(r.prompt_id, r);
+      if (r.status === 'done') doneRunMap.set(r.prompt_id, r);
+    }
   });
 
   const totalCount = prompts.length;
-  const testedCount = prompts.filter(p => runMap.has(p.id)).length;
+  const testedCount = prompts.filter(p => doneRunMap.has(p.id)).length;
   const pendingCount = totalCount - testedCount;
 
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));

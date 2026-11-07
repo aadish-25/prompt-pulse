@@ -1,19 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Radar, ChevronDown, Cpu, Repeat, Play, Plus, Loader2, Trash2 } from 'lucide-react';
+import { Radar, ChevronDown, Cpu, Repeat, Play, Plus, Loader2, Trash2, Key, Shield, Sparkles } from 'lucide-react';
 import ConfirmDialog from './ConfirmDialog';
 
-/**
- * Header - sticky top nav.
- * - Execution controls (model, rounds, run batch) are only visible on /dashboard.
- * - No landing/dashboard toggle buttons — routing is handled by react-router-dom.
- * - Project switcher shows on all pages so users can always switch or create projects.
- */
 export default function Header({
   activeProject,
   projects,
+  isLoadingProjects = false,
   onSelectProject,
   onOpenNewProjectModal,
+  onOpenSettings,
   onDeleteProject,
   isDashboard,
   selectedModel,
@@ -24,11 +20,14 @@ export default function Header({
   onRunBatch,
   isRunningBatch,
   batchProgress = null,
+  quotaInfo = null,
+  currentUser = null,
+  hasByok = false,
 }) {
   const [projectOpen, setProjectOpen] = useState(false);
   const [modelOpen, setModelOpen] = useState(false);
   const [roundsOpen, setRoundsOpen] = useState(false);
-  const [pendingDelete, setPendingDelete] = useState(null); // { id, name }
+  const [pendingDelete, setPendingDelete] = useState(null);
 
   const headerRef = useRef(null);
 
@@ -64,8 +63,7 @@ export default function Header({
         className="border-b border-surface-border bg-surface-850 sticky top-0 z-40 px-6 py-3 flex items-center justify-between"
       >
         {/* Left: Brand logo + project switcher */}
-        <div className="flex items-center gap-5">
-          {/* Logo -> Clickable link to landing page */}
+        <div className="flex items-center gap-4">
           <Link
             to="/"
             className="flex items-center gap-2.5 group cursor-pointer hover:opacity-90 transition-opacity"
@@ -88,11 +86,16 @@ export default function Header({
           <div className="relative">
             <button
               onClick={() => { setProjectOpen(!projectOpen); setModelOpen(false); setRoundsOpen(false); }}
+              disabled={isLoadingProjects}
               className="flex items-center gap-2 text-sm bg-surface-900 hover:bg-surface-800 border border-surface-border rounded-lg px-3 py-1.5 transition-colors cursor-pointer"
             >
-              <span className={`w-2 h-2 rounded-full ${activeProject ? 'bg-emerald-400' : 'bg-slate-500'}`} />
+              {isLoadingProjects ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-400" />
+              ) : (
+                <span className={`w-2 h-2 rounded-full ${activeProject ? 'bg-emerald-400' : 'bg-slate-500'}`} />
+              )}
               <span className="font-semibold text-white">
-                {activeProject?.brand_name || 'Select Project'}
+                {isLoadingProjects ? 'Loading Brands...' : (activeProject?.brand_name || 'Select Brand')}
               </span>
               {activeProjectDomain && (
                 <span className="text-xs text-slate-500">{activeProjectDomain}</span>
@@ -103,11 +106,11 @@ export default function Header({
             {projectOpen && (
               <div className="absolute top-full left-0 mt-1.5 w-72 bg-surface-850 border border-surface-border rounded-xl shadow-2xl z-50 p-1.5 space-y-0.5">
                 <div className="px-3 py-1.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-                  Projects
+                  Tracked Brands
                 </div>
 
                 {projects.length === 0 ? (
-                  <div className="px-3 py-3 text-xs text-slate-500 italic">No projects yet</div>
+                  <div className="px-3 py-3 text-xs text-slate-500 italic">No brands configured yet</div>
                 ) : (
                   projects.map((p) => {
                     const isActive = p.id === activeProject?.id;
@@ -154,7 +157,7 @@ export default function Header({
                     className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-blue-400 hover:bg-blue-500/10 font-semibold transition-colors cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    <span>Add Brand Project</span>
+                    <span>Onboard New Brand</span>
                   </button>
                 </div>
               </div>
@@ -162,96 +165,123 @@ export default function Header({
           </div>
         </div>
 
-        {/* Right: execution controls — only on /dashboard */}
-        {isDashboard && (
-          <div className="flex items-center gap-3">
-            {/* Model picker */}
-            <div className="relative">
+        {/* Right Section */}
+        <div className="flex items-center gap-2.5">
+          {/* Settings & BYOK Button */}
+          <button
+            type="button"
+            onClick={onOpenSettings}
+            title="Configure BYOK API Keys & Auth"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-surface-900 hover:bg-surface-800 border border-surface-border text-xs text-slate-300 font-semibold transition-colors cursor-pointer"
+          >
+            {currentUser?.is_admin ? (
+              <Shield className="w-3.5 h-3.5 text-amber-400" />
+            ) : hasByok ? (
+              <Key className="w-3.5 h-3.5 text-emerald-400" />
+            ) : (
+              <Key className="w-3.5 h-3.5 text-slate-400" />
+            )}
+            <span>
+              {currentUser?.is_admin
+                ? 'Admin'
+                : hasByok
+                ? 'BYOK Active'
+                : quotaInfo
+                ? `Free: ${quotaInfo.used_prompts || 0}/5`
+                : 'Settings & Keys'}
+            </span>
+          </button>
+
+          {/* Execution controls — only on /dashboard */}
+          {isDashboard && (
+            <div className="flex items-center gap-2.5">
+              {/* Model picker */}
+              <div className="relative">
+                <button
+                  onClick={() => { setModelOpen(!modelOpen); setProjectOpen(false); setRoundsOpen(false); }}
+                  className="flex items-center gap-2 text-xs bg-surface-900 hover:bg-surface-800 border border-surface-border rounded-lg px-2.5 py-1.5 transition-colors cursor-pointer"
+                >
+                  <Cpu className="w-3.5 h-3.5 text-slate-400" />
+                  <span className="text-slate-400 hidden sm:inline">Model:</span>
+                  <span className="text-white font-medium truncate max-w-[140px]">{selectedModel}</span>
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 ml-0.5" />
+                </button>
+
+                {modelOpen && (
+                  <div className="absolute top-full right-0 mt-1.5 w-72 max-h-80 overflow-y-auto bg-surface-850 border border-surface-border rounded-xl shadow-2xl z-50 p-1 space-y-0.5">
+                    {supportedModels.map((m) => (
+                      <button
+                        key={m}
+                        onClick={() => { onSelectModel(m); setModelOpen(false); }}
+                        className={`w-full text-left px-3 py-1.5 rounded-lg text-xs transition-colors cursor-pointer truncate ${
+                          selectedModel === m
+                            ? 'text-white bg-blue-500/10 border border-blue-500/20 font-semibold'
+                            : 'text-slate-300 hover:bg-surface-800'
+                        }`}
+                        title={m}
+                      >
+                        {m}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Rounds picker */}
+              <div className="relative">
+                <button
+                  onClick={() => { setRoundsOpen(!roundsOpen); setProjectOpen(false); setModelOpen(false); }}
+                  className="flex items-center gap-1.5 text-xs bg-surface-900 hover:bg-surface-800 border border-surface-border rounded-lg px-2.5 py-1.5 transition-colors cursor-pointer"
+                >
+                  <Repeat className="w-3.5 h-3.5 text-slate-400" />
+                  <span className="text-white font-medium">{selectedRounds} {selectedRounds === 1 ? 'Round' : 'Rounds'}</span>
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 ml-0.5" />
+                </button>
+
+                {roundsOpen && (
+                  <div className="absolute top-full right-0 mt-1.5 w-32 bg-surface-850 border border-surface-border rounded-xl shadow-2xl z-50 p-1 space-y-0.5">
+                    {[1, 2, 3].map((r) => (
+                      <button
+                        key={r}
+                        onClick={() => { onSelectRounds(r); setRoundsOpen(false); }}
+                        className={`w-full text-left px-3 py-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
+                          selectedRounds === r
+                            ? 'text-white bg-blue-500/10 border border-blue-500/20 font-semibold'
+                            : 'text-slate-300 hover:bg-surface-800'
+                        }`}
+                      >
+                        {r} {r === 1 ? 'Round' : 'Rounds'}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Run batch */}
               <button
-                onClick={() => { setModelOpen(!modelOpen); setProjectOpen(false); setRoundsOpen(false); }}
-                className="flex items-center gap-2 text-xs bg-surface-900 hover:bg-surface-800 border border-surface-border rounded-lg px-2.5 py-1.5 transition-colors cursor-pointer"
+                onClick={onRunBatch}
+                disabled={isRunningBatch}
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition-colors shadow-blue-600/20 cursor-pointer"
               >
-                <Cpu className="w-3.5 h-3.5 text-slate-400" />
-                <span className="text-slate-400">Model:</span>
-                <span className="text-white font-medium">{selectedModel}</span>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400 ml-0.5" />
+                {isRunningBatch ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>
+                      {batchProgress && batchProgress.total > 0
+                        ? `Tracking (${batchProgress.completed}/${batchProgress.total})...`
+                        : 'Tracking...'}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-3.5 h-3.5 fill-current" />
+                    <span>Run Batch</span>
+                  </>
+                )}
               </button>
-
-              {modelOpen && (
-                <div className="absolute top-full right-0 mt-1.5 w-72 max-h-80 overflow-y-auto bg-surface-850 border border-surface-border rounded-xl shadow-2xl z-50 p-1 space-y-0.5">
-                  {supportedModels.map((m) => (
-                    <button
-                      key={m}
-                      onClick={() => { onSelectModel(m); setModelOpen(false); }}
-                      className={`w-full text-left px-3 py-1.5 rounded-lg text-xs transition-colors cursor-pointer truncate ${
-                        selectedModel === m
-                          ? 'text-white bg-blue-500/10 border border-blue-500/20 font-semibold'
-                          : 'text-slate-300 hover:bg-surface-800'
-                      }`}
-                      title={m}
-                    >
-                      {m}
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
-
-            {/* Rounds picker */}
-            <div className="relative">
-              <button
-                onClick={() => { setRoundsOpen(!roundsOpen); setProjectOpen(false); setModelOpen(false); }}
-                className="flex items-center gap-2 text-xs bg-surface-900 hover:bg-surface-800 border border-surface-border rounded-lg px-2.5 py-1.5 transition-colors cursor-pointer"
-              >
-                <Repeat className="w-3.5 h-3.5 text-slate-400" />
-                <span className="text-slate-400">Rounds:</span>
-                <span className="text-white font-medium">{selectedRounds} {selectedRounds === 1 ? 'Round' : 'Rounds'}</span>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400 ml-0.5" />
-              </button>
-
-              {roundsOpen && (
-                <div className="absolute top-full right-0 mt-1.5 w-32 bg-surface-850 border border-surface-border rounded-xl shadow-2xl z-50 p-1 space-y-0.5">
-                  {[1, 2, 3].map((r) => (
-                    <button
-                      key={r}
-                      onClick={() => { onSelectRounds(r); setRoundsOpen(false); }}
-                      className={`w-full text-left px-3 py-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
-                        selectedRounds === r
-                          ? 'text-white bg-blue-500/10 border border-blue-500/20 font-semibold'
-                          : 'text-slate-300 hover:bg-surface-800'
-                      }`}
-                    >
-                      {r} {r === 1 ? 'Round' : 'Rounds'}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Run batch */}
-            <button
-              onClick={onRunBatch}
-              disabled={isRunningBatch}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition-colors shadow-blue-600/20 cursor-pointer"
-            >
-              {isRunningBatch ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>
-                    {batchProgress && batchProgress.total > 0
-                      ? `Running (${batchProgress.completed}/${batchProgress.total})...`
-                      : 'Running...'}
-                  </span>
-                </>
-              ) : (
-                <>
-                  <Play className="w-3.5 h-3.5 fill-current" />
-                  <span>Run Tracking Batch</span>
-                </>
-              )}
-            </button>
-          </div>
-        )}
+          )}
+        </div>
       </header>
 
       {/* Delete confirmation dialog */}
