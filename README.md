@@ -1,186 +1,97 @@
 # PromptPulse
 
-> **Track your brand's visibility inside AI-generated answers — before your competitors do.**
+PromptPulse is an AI visibility monitoring workspace. It runs customer-style prompts through selected AI engines, stores their answers and source evidence, and analyses brand mentions, sentiment, competitor mentions and citation visibility.
 
-PromptPulse is an AI visibility monitoring platform that tells you exactly how, when, and how positively large language models mention your brand when real customers ask questions. You define your brand and a set of consumer search queries. PromptPulse runs them through an LLM-powered research agent that searches the web, synthesises grounded answers, and extracts brand mentions, competitor co-mentions, citation sources, and sentiment — all stored, trended, and presented in a clean dashboard.
+## What it does
 
----
+1. Create a project for a brand: name, website domains, aliases, competitors and brand context.
+2. Add prompts manually, in bulk, or generate candidate ideas.
+3. Run prompts across selected AI engines and inspect each execution.
+4. Review brand visibility, target sentiment, competitor mentions and cited/retrieved sources.
+5. Compare domain performance and competitor mention share across completed runs.
 
-## Why It Exists
+## Main workspace pages
 
-Search is shifting. Consumers increasingly ask AI assistants — "which laptop is best for students under ₹50,000?" or "what's a good wireless earphone under ₹3,000?" — instead of clicking through ten blue links. Traditional SEO tools have no visibility into this new discovery channel.
+- **Overview:** visibility rate, completed-run count, top cited domains, recent tracking activity and competitor mentions.
+- **Prompt Library:** search, add one or multiple prompts, edit, activate/pause and paginate.
+- **Tracking:** start tracking cycles and filter executions by status, batch, round and date.
+- **Run Analysis:** inspect a selected prompt's final answer, target sentiment, brand remark, matched mentions, competitors, sources and search queries.
+- **Sources & Citations:** domain ranking and individual observed sources, with configured brand domains highlighted.
+- **Competitors:** ranked competitor mention counts and share of all competitor mentions.
+- **Project Settings:** project brand identity/context, selected engines, tracking cadence preferences and project deletion.
+- **My Profile:** username, email, profile image, password and provider API keys.
 
-PromptPulse was built to answer three questions:
+## Providers and supported models
 
-1. **Is my brand even showing up** in AI answers for queries my customers actually ask?
-2. **Which competitors are being recommended** instead?
-3. **Is the sentiment positive, neutral, or negative** when my brand is mentioned?
+The provider prefix selects the corresponding OpenAI-compatible endpoint:
 
----
+| Prefix | Provider | Supported model IDs |
+|---|---|---|
+| `OR:` | OpenRouter | `openai/gpt-4o-mini`, `google/gemini-2.5-flash`, `meta-llama/llama-3.3-70b-instruct`, `openai/gpt-4o` |
+| `GROQ:` | Groq | `llama-3.3-70b-versatile`, `llama-3.1-8b-instant`, `mixtral-8x7b-32768` |
+| `DS:` | DeepSeek | `deepseek-chat`, `deepseek-reasoner` |
+| `AR:` | AgentRouter | Provider routing is configured; add a model ID to `SUPPORTED_MODELS` before exposing it in the UI |
 
-## How It Works — Full Workflow
+Provider API keys can be supplied as server environment variables or entered in My Profile for the current app session. Browser-entered keys are sent with PromptPulse API requests and are not stored in the database or browser storage.
 
-```
-User defines a Project (brand name, domain, competitors, aliases)
-        │
-        ▼
-[ AI Prompt Creator ]
-  ↳ LLM generates 10 brand-agnostic consumer search queries
-    (e.g. "best wireless earbuds under 2000 for gym use")
-  ↳ User reviews, selects, and can add custom prompts
-        │
-        ▼
-[ Batch Execution Engine ]
-  ↳ For each selected prompt, a ReAct-style agent loop runs:
-      Turn 1 → LLM decides what to search
-      Turn 2 → Web search via Tavily → 10 results injected
-      Turn 3 → LLM searches again (minimum 3 searches enforced)
-      Turn 4 → Third web search injected
-      Turn 5 → LLM writes final grounded answer with [X] citations
-  ↳ Executions run sequentially (CONCURRENT_WORKERS = 1)
-        │
-        ▼
-[ Brand & Sentiment Extraction ]
-  ↳ Regex + fuzzy matching finds target brand mentions (typo-tolerant)
-  ↳ LLM structured-output call extracts: competitor list, sentiment, remark
-  ↳ Citation source URLs correlated with cited [X] markers
-        │
-        ▼
-[ Dashboard ]
-  ↳ AI Answers & Grounding: Full LLM answers, citations, brand analysis per prompt
-  ↳ Historical runs with pass/fail status, timestamps, error details
-  ↳ Competitor co-mention tracking across all executions
-```
+## Environment variables
 
-### Key Design Decisions
-
-- **Grounded answers only** — the agent is forced to call `web_search` at least 3 times before producing any answer. No hallucinated recall.
-- **Brand-agnostic prompts** — the variant generator never names your brand or competitors in the queries. Queries reflect how a real, uninformed consumer would search.
-- **Fuzzy brand matching** — `difflib.SequenceMatcher` with a 0.82 threshold catches single-character typos (e.g. "Lenevo" → "Lenovo") in both mention detection and competitor filtering.
-- **Citation tracing** — every cited source `[X]` in the answer is matched back to the exact Tavily result URL and stored in the database.
-- **Dynamic multi-provider LLM routing** — PromptPulse seamlessly routes requests across **OpenRouter (`OR:`)**, **Groq (`GROQ:`)**, **AgentRouter (`AR:`)**, and **DeepSeek (`DS:`)** using standard OpenAI-compatible client semantics. Select any model from the top navigation dropdown without modifying code.
-- **Batch-first chronological sorting** — prompt executions are automatically ordered with the latest batch first (`-(batch_id or 0), id ASC`) and labeled with crisp rectangular batch badges.
-- **Optimistic UI deletions** — single execution deletions update the frontend state instantaneously (0ms user lag) while cascading removals occur asynchronously in the background.
-- **Scroll-free grounding table** — table-fixed layout with calculated widths and auto-truncation (`...`) eliminates horizontal scrollbars completely.
-
----
-
-## Supported Models & Providers
-
-PromptPulse includes a curated multi-provider model pool accessible directly via the top navbar dropdown:
-
-| Prefix | Provider | Model ID in UI | Upstream Model Name | Best For / Notes |
-| :--- | :--- | :--- | :--- | :--- |
-| `OR:` | **OpenRouter** | `OR: openai/gpt-4o-mini` | `openai/gpt-4o-mini` | Fast, cost-effective default for generation and evaluation |
-| `OR:` | **OpenRouter** | `OR: google/gemini-2.5-flash` | `google/gemini-2.5-flash` | High-quality reasoning, strong grounding & long-context synthesis |
-| `OR:` | **OpenRouter** | `OR: meta-llama/llama-3.3-70b-instruct` | `meta-llama/llama-3.3-70b-instruct` | Open-weights leader with strong instruction-following capabilities |
-| `OR:` | **OpenRouter** | `OR: openai/gpt-4o` | `openai/gpt-4o` | Flagship OpenAI frontier model for mission-critical benchmark runs |
-| `GROQ:` | **Groq** | `GROQ: openai/gpt-oss-120b` | `openai/gpt-oss-120b` | Ultra-fast LPU inference, native tool calling & structured outputs |
-| `GROQ:` | **Groq** | `GROQ: qwen/qwen3.8-27b` | `qwen/qwen3.8-27b` | Blazing-fast inference for rapid prompt variant ideation |
-| `GROQ:` | **Groq** | `GROQ: openai/gpt-oss-20b` | `openai/gpt-oss-20b` | Extremely lightweight, low-latency testing |
-| `DS:` | **DeepSeek** | `DS: deepseek-chat` | `deepseek-chat` | Direct DeepSeek API (~$0.14/1M tokens, ultra-affordable) |
-| `DS:` | **DeepSeek** | `DS: deepseek-reasoner` | `deepseek-reasoner` | Direct DeepSeek-R1 reasoning model for deep evaluation analysis |
-
-### Other Available Models (Ready to Wire Up)
-
-Because all four providers use standard OpenAI-compatible endpoints, you can add any of the following models simply by adding them to `SUPPORTED_MODELS` in `backend/app/config.py`:
-
-* **AgentRouter Models (Handler already coded in `PROVIDER_CONFIG`)**:
-  * `AR: gpt-4o-mini`, `AR: gpt-4o`, `AR: claude-3-5-sonnet`, `AR: gemini-1.5-flash`, `AR: deepseek-chat`
-* **Anthropic via OpenRouter**:
-  * `OR: anthropic/claude-3.5-haiku` (Affordable, ultra-fast Claude model)
-  * `OR: anthropic/claude-3.7-sonnet` (Hybrid reasoning & thinking mode)
-* **Meta Llama Family**:
-  * `OR: meta-llama/llama-3.1-8b-instruct` / `GROQ: llama-3.1-8b-instant` (Very lightweight)
-  * `OR: meta-llama/llama-3.1-405b-instruct` (Massive open-weights foundation model)
-* **Qwen & Mistral Family**:
-  * `OR: qwen/qwen-2.5-72b-instruct` (Top multilingual benchmark performer)
-  * `OR: mistralai/mistral-large-2411` (Mistral's flagship enterprise model)
-* **Google Gemini Direct**:
-  * `OR: google/gemini-2.0-flash-exp` (Next-gen Gemini 2.0 experimental reasoning)
-  * `AR: gemini-1.5-pro` (Long-context 2M token analysis)
-
-To add any new model, simply append `"PREFIX: actual-model-id"` into `SUPPORTED_MODELS` in `backend/app/config.py`.
-
----
-
-## Environment Variables
-
-Create a `.env` file in the project root:
+Create a `.env` file in the repository root. Configure only the providers you intend to use.
 
 ```env
-# PostgreSQL connection string (Neon, Supabase, or local PostgreSQL)
-DATABASE_URL=postgresql://user:password@host/dbname?sslmode=require
+DATABASE_URL=postgresql://user:password@host/database?sslmode=require
+JWT_SECRET_KEY=replace-with-a-long-random-secret
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=use-a-unique-strong-password
 
-# Tavily Web Search API key (https://app.tavily.com)
 TAVILY_API_KEY=tvly-...
-
-# --- Provider API Keys (Set whichever you want to use) ---
 OPENROUTER_API_KEY=sk-or-v1-...
 GROQ_API_KEY=gsk_...
-AGENTROUTER_API_KEY=sk-...
-DEEPSEEK_API_KEY=sk-...
+DEEPSEEK_API_KEY=...
+AGENTROUTER_API_KEY=...
 
-# Optional Custom Gateway overrides
-# LLM_BASE_URL=https://gateway.ai.cloudflare.com/v1/...
-# LLM_API_KEY=sk-...
+# Optional shared gateway overrides
+LLM_BASE_URL=
+LLM_API_KEY=
+
+# Optional separate demo credentials
+DEMO_OPENROUTER_API_KEY=
+DEMO_GROQ_API_KEY=
+DEMO_TAVILY_API_KEY=
 ```
 
----
+The backend loads environment values from the root `.env` file. `JWT_SECRET_KEY` must be set to a stable random value in deployed environments; otherwise a temporary process secret is generated and tokens will not survive a restart. Do not commit real credentials.
 
-## Local Development
+## Local development
 
 ### Prerequisites
 
-- Python 3.11+
-- Node.js 18+
-- PostgreSQL (running locally or a hosted instance)
+- Python 3.11 or newer (use the version required by your deployment lockfile)
+- Node.js 18 or newer
+- PostgreSQL, or a compatible SQLAlchemy database URL for local testing
 
-### 1. Clone & install
+### Backend
 
-```bash
-git clone https://github.com/your-username/prompt-pulse.git
-cd prompt-pulse
-```
-
-### 2. Backend setup
+From the repository root:
 
 ```bash
-# Create a virtual environment
 python -m venv .venv
 
-# Activate it
-# Windows:
-.venv\Scripts\activate
-# macOS/Linux:
+# Windows PowerShell
+.venv\Scripts\Activate.ps1
+
+# macOS/Linux
 source .venv/bin/activate
 
-# Install dependencies
-pip install fastapi uvicorn sqlalchemy psycopg2-binary python-dotenv openai tavily-python
-```
-
-### 3. Configure environment
-
-```bash
-# Copy and fill in your keys
-cp .env.example .env
-# Edit .env with your DATABASE_URL, OPENROUTER_API_KEY, TAVILY_API_KEY
-```
-
-### 4. Start the backend
-
-```bash
+pip install -r requirements.txt
 uvicorn app.main:app --app-dir backend --reload --port 8000
 ```
 
-The API will be live at `http://localhost:8000`. Test it:
+The API health endpoint is `http://127.0.0.1:8000/health`.
 
-```bash
-curl http://localhost:8000/health
-# {"status": "ok"}
-```
+### Frontend
 
-### 5. Frontend setup
+In a second terminal:
 
 ```bash
 cd frontend
@@ -188,77 +99,57 @@ npm install
 npm run dev
 ```
 
-The React app will be at `http://localhost:5173`. All `/api/*` requests are proxied to `http://localhost:8000` via Vite's dev proxy (configured in [`vite.config.js`](./frontend/vite.config.js)).
+Vite serves the frontend at `http://localhost:5173` and proxies `/api` to `http://127.0.0.1:8000` by default. Set `VITE_API_PROXY_TARGET` to change the development backend target. For a deployed frontend, set `VITE_API_BASE_URL` if the API is not mounted at `/api` on the same origin.
 
----
+## Account and project data model
 
+- `users` stores registered accounts, unique usernames/emails, password hashes and optional profile images.
+- Passwords are hashed with PBKDF2-HMAC-SHA256; plaintext passwords are never stored.
+- `projects.owner_id` scopes each registered user's projects. Project, prompt, batch, execution, settings, summary and citation endpoints enforce ownership.
+- Administrator access is cross-project and is disabled unless `ADMIN_PASSWORD` is configured. The demo account can access legacy projects without an owner.
+- `project_settings` stores brand context, selected engines and schedule preferences independently of account profile settings.
+- Existing databases receive an additive startup migration for `projects.owner_id` and its index. New tables are created through SQLAlchemy metadata initialization.
 
-## Configuration Reference
+## API routes added/used by the workspace
 
-All runtime configuration lives in [`backend/app/config.py`](./backend/app/config.py):
+| Method | Route | Purpose |
+|---|---|---|
+| `POST` | `/auth/register` | Create an account and issue a token |
+| `POST` | `/auth/login` | Authenticate a registered, demo or administrator account |
+| `GET` / `PATCH` | `/auth/me` | Read or update account profile |
+| `POST` | `/auth/change-password` | Verify and change the account password |
+| `GET` | `/projects` | List projects visible to the current account |
+| `POST` | `/projects` | Create an owned project |
+| `GET` / `PATCH` / `DELETE` | `/projects/{id}` | Read, update or delete a project |
+| `GET` / `PUT` | `/projects/{id}/settings` | Read or persist project settings |
+| `GET` / `POST` | `/projects/{id}/prompts` | List or add prompts |
+| `POST` | `/projects/{id}/prompts/bulk` | Add multiple prompts |
+| `PATCH` | `/prompts/{id}` | Activate or pause a prompt |
+| `PATCH` | `/prompts/{id}/content` | Edit prompt text without changing its ID |
+| `DELETE` | `/prompts/{id}` | Delete a prompt and its execution history |
+| `POST` | `/projects/{id}/runs` | Start a tracking batch |
+| `GET` | `/projects/{id}/results` | Retrieve project executions |
+| `DELETE` | `/projects/{id}/results` | Clear project execution history |
+| `DELETE` | `/executions/{id}` | Delete one execution |
+| `GET` | `/projects/{id}/summary` | Retrieve visibility and competitor metrics |
+| `GET` | `/projects/{id}/citations` | Retrieve domain citation metrics |
 
-| Variable | Default | Description |
-| :--- | :--- | :--- |
-| `MODEL` | `openai/gpt-4o-mini` | Default LLM model for the grounding agent and extraction |
-| `SUPPORTED_MODELS` | *(list of 5)* | Models available in the UI dropdown |
-| `ROUNDS` | `1` | How many execution rounds per batch |
-| `MAX_SEARCH_STEPS` | `5` | Maximum tool-call turns per prompt in the agent loop |
-| `FORCE_MIN_SEARCHES` | `True` | Enforces at least `MIN_SEARCHES` web searches before the final answer |
-| `MIN_SEARCHES` | `3` | Minimum forced web searches per prompt |
-| `CONCURRENT_WORKERS` | `1` | Number of parallel prompt executions (keep at 1 to avoid OpenRouter in-flight credit exhaustion) |
-| `DEFAULT_VARIANT_COUNT` | `5` | Default number of prompt variants to generate |
-| `MAX_VARIANT_COUNT` | `10` | Maximum prompt variants per generation |
+The backend mounts its API routers with and without the `/api` prefix. The frontend uses `/api` by default.
 
----
+## Current limitations
 
-## API Endpoints
+- Project schedule preferences are persisted, but automatic daily/weekly/monthly execution requires a scheduler/worker service to be configured.
+- Password changes are supported. Password-reset email delivery is not enabled until an email provider and reset-token flow are configured.
+- Tracking currently queues selected engines sequentially using the existing single-engine batch endpoint; it does not yet use a separate parallel multi-provider cycle resource.
+- Provider API keys entered in My Profile remain in frontend memory and are cleared on logout or refresh. They are not persisted to the user account.
+- The demo and administrator accounts are managed through environment-configured credentials and cannot edit their profile through the registered-account profile endpoint.
 
-| Method | Path | Description |
-| :--- | :--- | :--- |
-| `GET` | `/health` | Health check |
-| `GET` | `/api/projects` | List all projects |
-| `POST` | `/api/projects` | Create a new project |
-| `DELETE` | `/api/projects/{id}` | Delete a project |
-| `GET` | `/api/projects/{id}/prompts` | Get all prompts for a project |
-| `POST` | `/api/projects/{id}/prompts` | Add a prompt to a project |
-| `POST` | `/api/projects/{id}/prompts/generate-variants` | Generate AI prompt variants |
-| `POST` | `/api/projects/{id}/batches` | Start a batch execution run |
-| `GET` | `/api/projects/{id}/results` | Get all execution results |
-| `DELETE` | `/api/projects/{id}/results` | Clear all results for a project |
-| `DELETE` | `/api/executions/{id}` | Cascade delete a single prompt execution |
+## Tests and checks
 
----
+Backend tests live in `backend/tests`. Run them with:
 
-## Future Scope & Architectural Roadmap
+```bash
+python -m pytest -q backend/tests
+```
 
-Studying open-source GEO systems (**Canonry**, **Elmo**, **GEO/AEO Tracker**) highlights several high-impact capabilities slated for future database schema expansions:
-
-### 1. Intent-Categorized Prompts in PostgreSQL
-* **Current**: The `prompts` table stores `(id, project_id, text, active, created_at)`. Intent buckets (`core_need`, `criteria`, `competitor`, `persona`, `transaction`) are generated and displayed on candidate cards in the UI.
-* **Roadmap**: Add an `intent_category: Mapped[str]` column to the `prompts` table so selected prompts retain their classification permanently in the tracking queue.
-
-### 2. Segmented Intent Visibility Analytics
-* **Current**: Brand visibility is computed as an aggregate percentage across all prompt runs in a project.
-* **Roadmap**: Calculate visibility and sentiment broken down by intent bucket (e.g. *"85% visibility on Core Need queries, but only 20% visibility on Competitor Conquest queries"*), exposing exactly where competitors are displacing your brand in AI answers.
-
-### 3. Persistent Brand ICP & Category Context
-* **Current**: Brands define name, domain, competitors, and aliases.
-* **Roadmap**: Add `icp_description` and `seed_topic` columns to the `projects` table so niche, early-stage, or ambiguous startups (e.g. *"Sprint"*, *"Orbit"*) maintain permanent category anchoring across all variant generations and evaluation runs without manual re-entry.
-
-### 4. Search Trigger & Retrieval Fan-Out Tracking
-* **Roadmap**: Track whether source-seeking triggers (*"based on reviews"*, *"what do developers recommend on reddit"*, *"with pros and cons"*) cause answer engines to expand search queries (fan-out) versus answering from internal parametric memory.
-
----
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/your-feature`
-3. Commit your changes: `git commit -m 'feat: add your feature'`
-4. Push and open a pull request
-
----
-
-## License
-
-MIT
+For local testing, configure a valid `DATABASE_URL` and install the dependencies in `requirements.txt`.
